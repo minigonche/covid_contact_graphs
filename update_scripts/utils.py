@@ -9,8 +9,6 @@ import time
 import numpy as np
 from datetime import timedelta, datetime
 import os
-import geopandas
-import unidecode
 
 
 
