@@ -15,6 +15,9 @@ from config import *
 import update_transits
 import update_contacts
 
+print('')
+print('')
+print('Time: {}'.format(datetime.now()))
 print('Started Update Process')
 print('----------------')
 print()
