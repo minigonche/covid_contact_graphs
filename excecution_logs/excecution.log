@@ -213,3 +213,110 @@ Total Time: 0.0 minutes
 
 All Done
 OK
+
+
+
+----------------------------------------------------------------------------------------------------------------------------
+Time: 2020-07-10 23:00:52.703865
+Started Update Process
+----------------
+
+Contacts
+
+Extracts Coverage Summary for all Locations 
+Updating for 6 codes
+
+Excecuting: CO.22 (1 of 6) from 2020-07-09 16:00:00 to 2020-07-10 00:00:00
+   Creating table contactos_temp_table, partitioned on column timestamp for depto_code: CO.22
+      Done. Records for CO.22 loaded to the table contactos_temp_table. Time: 0.06m
+
+   Started
+      Interval: From  2020-07-09 16:00:00 to 2020-07-10 00:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 3.05s. Time Since Start: 0.1m
+
+   Done
+   Total time: 0.05 minutes
+-------------
+
+Global Time Ellapsed: 0.23 minutes
+
+Excecuting: VE.03 (2 of 6) from 2020-07-08 17:00:00 to 2020-07-10 00:00:00
+   Creating table contactos_temp_table, partitioned on column timestamp for depto_code: VE.03
+      Done. Records for VE.03 loaded to the table contactos_temp_table. Time: 0.05m
+
+   Started
+      Interval: From  2020-07-08 17:00:00 to 2020-07-09 05:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 2.9s. Time Since Start: 0.0m
+      Interval: From  2020-07-09 05:00:00 to 2020-07-09 17:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 2.78s. Time Since Start: 0.1m
+      Interval: From  2020-07-09 17:00:00 to 2020-07-10 00:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 2.8s. Time Since Start: 0.1m
+
+   Done
+   Total time: 0.14 minutes
+-------------
+
+Global Time Ellapsed: 0.42 minutes
+
+Excecuting: CO.32 (3 of 6) from 2020-07-09 22:00:00 to 2020-07-10 00:00:00
+   Creating table contactos_temp_table, partitioned on column timestamp for depto_code: CO.32
+      Done. Records for CO.32 loaded to the table contactos_temp_table. Time: 0.05m
+
+   Started
+      Interval: From  2020-07-09 22:00:00 to 2020-07-10 00:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 2.84s. Time Since Start: 0.0m
+
+   Done
+   Total time: 0.05 minutes
+-------------
+
+Global Time Ellapsed: 0.52 minutes
+
+Excecuting: CO.03 (4 of 6) from 2020-07-09 01:00:00 to 2020-07-10 00:00:00
+   Creating table contactos_temp_table, partitioned on column timestamp for depto_code: CO.03
+      Done. Records for CO.03 loaded to the table contactos_temp_table. Time: 0.06m
+
+   Started
+      Interval: From  2020-07-09 01:00:00 to 2020-07-09 13:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 2.99s. Time Since Start: 0.0m
+      Interval: From  2020-07-09 13:00:00 to 2020-07-10 00:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 2.82s. Time Since Start: 0.1m
+
+   Done
+   Total time: 0.1 minutes
+-------------
+
+Global Time Ellapsed: 0.68 minutes
+
+Excecuting: CO.17 (5 of 6) from 2020-07-09 23:00:00 to 2020-07-10 00:00:00
+   Creating table contactos_temp_table, partitioned on column timestamp for depto_code: CO.17
+      Done. Records for CO.17 loaded to the table contactos_temp_table. Time: 0.06m
+
+   Started
+      Interval: From  2020-07-09 23:00:00 to 2020-07-10 00:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 3.03s. Time Since Start: 0.1m
+
+   Done
+   Total time: 0.05 minutes
+-------------
+
+Global Time Ellapsed: 0.8 minutes
+
+Excecuting: CO.10 (6 of 6) from 2020-07-09 23:00:00 to 2020-07-10 00:00:00
+   Creating table contactos_temp_table, partitioned on column timestamp for depto_code: CO.10
+      Done. Records for CO.10 loaded to the table contactos_temp_table. Time: 0.06m
+
+   Started
+      Interval: From  2020-07-09 23:00:00 to 2020-07-10 00:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 3.06s. Time Since Start: 0.1m
+
+   Done
+   Total time: 0.05 minutes
+-------------
+
+Global Time Ellapsed: 0.91 minutes
+
+Total time: 0.91 minutes
+----------
+
+Tranits
+
+Started
+
+-------------------
+Total Time: 0.0 minutes
+----------
+
+All Done
+OK
