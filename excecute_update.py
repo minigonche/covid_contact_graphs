@@ -41,7 +41,7 @@ print('OK')
 with open(os.path.join(current_path, 'excecution_logs/excecutions_timestamps.log'),'a') as f:
     f.write('Updated on: {}\n'.format(datetime.now()))
 
-print('Shuting down ')
-service = discovery.build('compute' ,'v1', cache_discovery=False)
-request = service.instances().stop(project=project, zone=zone, instance=instance)
-response = request.execute()
+#print('Shuting down ')
+#service = discovery.build('compute' ,'v1', cache_discovery=False)
+#request = service.instances().stop(project=project, zone=zone, instance=instance)
+#response = request.execute()

@@ -7,3 +7,5 @@ git add -A
 git commit -a -m "updated_excecuted"
 echo "Pushing"
 git push
+echo "Shuting Down"
+sudo poweroff
