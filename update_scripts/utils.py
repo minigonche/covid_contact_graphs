@@ -24,7 +24,7 @@ def create_temp_table(client, table_name, code_depto, start_date, end_date, accu
     storing all the results from unacast with the given location id
     '''
     
-    table_id = client.dataset('contactos_temp').table(table_name)
+    table_id = client.dataset('downloads_temp').table(table_name)
     schema = [  bigquery.SchemaField("identifier", "STRING"),
                 bigquery.SchemaField("timestamp", "TIMESTAMP"),
                 bigquery.SchemaField("device_lat", "FLOAT"),
@@ -417,7 +417,7 @@ def update_contacts_for_depto_code(client, code_depto, start_time, end_time,
     print()
 
     # Name of sources
-    source_table_id = 'grafos-alcaldia-bogota.contactos_temp.{}'.format(temp_table_name)
+    source_table_id = 'grafos-alcaldia-bogota.downloads_temp.{}'.format(temp_table_name)
     destination_table_id = 'grafos-alcaldia-bogota.contactos_hour.all_locations'
 
 
