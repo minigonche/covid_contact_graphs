@@ -17,6 +17,8 @@ import update_contacts
 
 print('')
 print('')
+print('')
+print('----------------------------------------------------------------------------------------------------')
 print('Time: {}'.format(datetime.now()))
 print('Started Update Process')
 print('----------------')
@@ -34,9 +36,9 @@ update_transits.main()
 print('----------')
 print('')
 print('All Done')
-print('')
+print('OK')
 
-with open(os.path.join(current_path, 'excecutions_timestamps.log'),'a') as f:
+with open(os.path.join(current_path, 'excecution_logs/excecutions_timestamps.log'),'a') as f:
     f.write('Updated on: {}\n'.format(datetime.now()))
 
 print('Shuting down ')
