@@ -2,15 +2,16 @@
 import pathlib
 import os, sys
 from datetime import datetime
-from config import *
 from googleapiclient import discovery
 
 current_path = pathlib.Path(__file__).parent.absolute()
 
 # Adds the location of the scripts
+sys.path.append(current_path)
 sys.path.append(os.path.join(current_path,'update_scripts/'))
 
 # Imports the scripts
+from config import *
 import update_transits
 import update_contacts
 
@@ -19,23 +20,23 @@ print('----------------')
 print()
 print('Contacts')
 print('')
-#update_contacts.main()
+update_contacts.main()
 
 print('----------')
 print('')
 print('Tranits')
 print('')
-#update_transits.main()
+update_transits.main()
 
 print('----------')
 print('')
 print('All Done')
 print('')
 
-with open('excecutions_timestamps.log','a') as f:
-    f.write('Updated on: {}'.format(datetime.now()))
+with open(os.path.join(current_path, 'excecutions_timestamps.log'),'a') as f:
+    f.write('Updated on: {}\n'.format(datetime.now()))
 
 print('Shuting down ')
 service = discovery.build('compute' ,'v1', cache_discovery=False)
 request = service.instances().stop(project=project, zone=zone, instance=instance)
-#response = request.execute()
+response = request.execute()
