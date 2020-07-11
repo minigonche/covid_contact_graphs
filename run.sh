@@ -1,3 +1,2 @@
 #! /bin/bash
-cd /home/minigonche/covid_contact_graphs/
-python3 excecute_update.py >> excecution_logs/excecution.log
+python3 covid_contact_graphs/excecute_update.py >> covid_contact_graphs/excecution_logs/excecution.log
