@@ -1077,3 +1077,172 @@ Total Time: 2.54 minutes
 
 All Done
 OK
+
+
+
+----------------------------------------------------------------------------------------------------------------------------
+Time: 2020-07-13 19:55:55.587059
+Started Update Process
+----------------
+
+Contacts
+
+Extracts Coverage Summary for all Locations 
+Updating for 8 codes
+
+Excecuting: CO.09 (1 of 8) from 2020-07-12 19:00:00 to 2020-07-13 00:00:00
+   Creating table contactos_temp_table, partitioned on column timestamp for depto_code: CO.09
+      Done. Records for CO.09 loaded to the table contactos_temp_table. Time: 0.07m
+
+   Started
+      Interval: From  2020-07-12 19:00:00 to 2020-07-13 00:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 3.1s. Time Since Start: 0.1m
+
+   Done
+   Total time: 0.05 minutes
+-------------
+
+Global Time Ellapsed: 0.23 minutes
+
+Excecuting: CO.16 (2 of 8) from 2020-07-12 23:00:00 to 2020-07-13 00:00:00
+   Creating table contactos_temp_table, partitioned on column timestamp for depto_code: CO.16
+      Done. Records for CO.16 loaded to the table contactos_temp_table. Time: 0.06m
+
+   Started
+      Interval: From  2020-07-12 23:00:00 to 2020-07-13 00:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 2.22s. Time Since Start: 0.0m
+
+   Done
+   Total time: 0.04 minutes
+-------------
+
+Global Time Ellapsed: 0.33 minutes
+
+Excecuting: CO.22 (3 of 8) from 2020-07-12 20:00:00 to 2020-07-13 00:00:00
+   Creating table contactos_temp_table, partitioned on column timestamp for depto_code: CO.22
+      Done. Records for CO.22 loaded to the table contactos_temp_table. Time: 0.05m
+
+   Started
+      Interval: From  2020-07-12 20:00:00 to 2020-07-13 00:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 4.36s. Time Since Start: 0.1m
+
+   Done
+   Total time: 0.07 minutes
+-------------
+
+Global Time Ellapsed: 0.46 minutes
+
+Excecuting: VE.03 (4 of 8) from 2020-07-10 18:00:00 to 2020-07-13 00:00:00
+   Creating table contactos_temp_table, partitioned on column timestamp for depto_code: VE.03
+      Done. Records for VE.03 loaded to the table contactos_temp_table. Time: 0.07m
+
+   Started
+      Interval: From  2020-07-10 18:00:00 to 2020-07-11 06:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 3.79s. Time Since Start: 0.1m
+      Interval: From  2020-07-11 06:00:00 to 2020-07-11 18:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 2.56s. Time Since Start: 0.1m
+      Interval: From  2020-07-11 18:00:00 to 2020-07-12 06:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 2.35s. Time Since Start: 0.1m
+      Interval: From  2020-07-12 06:00:00 to 2020-07-12 18:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 2.46s. Time Since Start: 0.2m
+      Interval: From  2020-07-12 18:00:00 to 2020-07-13 00:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 2.83s. Time Since Start: 0.2m
+
+   Done
+   Total time: 0.23 minutes
+-------------
+
+Global Time Ellapsed: 0.77 minutes
+
+Excecuting: CO.03 (5 of 8) from 2020-07-12 22:00:00 to 2020-07-13 00:00:00
+   Creating table contactos_temp_table, partitioned on column timestamp for depto_code: CO.03
+      Done. Records for CO.03 loaded to the table contactos_temp_table. Time: 0.06m
+
+   Started
+      Interval: From  2020-07-12 22:00:00 to 2020-07-13 00:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 2.84s. Time Since Start: 0.0m
+
+   Done
+   Total time: 0.05 minutes
+-------------
+
+Global Time Ellapsed: 0.89 minutes
+
+Excecuting: CO.17 (6 of 8) from 2020-07-12 20:00:00 to 2020-07-13 00:00:00
+   Creating table contactos_temp_table, partitioned on column timestamp for depto_code: CO.17
+      Done. Records for CO.17 loaded to the table contactos_temp_table. Time: 0.06m
+
+   Started
+      Interval: From  2020-07-12 20:00:00 to 2020-07-13 00:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 2.45s. Time Since Start: 0.0m
+
+   Done
+   Total time: 0.04 minutes
+-------------
+
+Global Time Ellapsed: 0.99 minutes
+
+Excecuting: CO.10 (7 of 8) from 2020-07-12 22:00:00 to 2020-07-13 00:00:00
+   Creating table contactos_temp_table, partitioned on column timestamp for depto_code: CO.10
+      Done. Records for CO.10 loaded to the table contactos_temp_table. Time: 0.06m
+
+   Started
+      Interval: From  2020-07-12 22:00:00 to 2020-07-13 00:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 3.12s. Time Since Start: 0.1m
+
+   Done
+   Total time: 0.05 minutes
+-------------
+
+Global Time Ellapsed: 1.11 minutes
+
+Excecuting: CO.38 (8 of 8) from 2020-07-12 23:00:00 to 2020-07-13 00:00:00
+   Creating table contactos_temp_table, partitioned on column timestamp for depto_code: CO.38
+      Done. Records for CO.38 loaded to the table contactos_temp_table. Time: 0.06m
+
+   Started
+      Interval: From  2020-07-12 23:00:00 to 2020-07-13 00:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 2.86s. Time Since Start: 0.0m
+
+   Done
+   Total time: 0.05 minutes
+-------------
+
+Global Time Ellapsed: 1.22 minutes
+
+Total time: 1.22 minutes
+----------
+
+Tranits
+
+Started
+   Excecuting: colombia_university_andes_cede_principal (1 of 7)
+      Adding transtits for: colombia_university_andes_cede_principal. Between: 2020-02-01 and 2020-07-13
+      Done
+   Current Time: 0.69 minutes
+
+   Excecuting: colombia_university_rosario_gsb (2 of 7)
+      Adding transtits for: colombia_university_rosario_gsb. Between: 2020-02-01 and 2020-07-13
+      Done
+   Current Time: 1.4 minutes
+
+   Excecuting: colombia_university_rosario_claustro (3 of 7)
+      Adding transtits for: colombia_university_rosario_claustro. Between: 2020-02-01 and 2020-07-13
+      Done
+   Current Time: 2.08 minutes
+
+   Excecuting: colombia_university_rosario_campus_norte (4 of 7)
+      Adding transtits for: colombia_university_rosario_campus_norte. Between: 2020-02-01 and 2020-07-13
+      Done
+   Current Time: 2.76 minutes
+
+   Excecuting: colombia_university_rosario_mederi (5 of 7)
+      Adding transtits for: colombia_university_rosario_mederi. Between: 2020-02-01 and 2020-07-13
+      Done
+   Current Time: 3.7 minutes
+
+   Excecuting: colombia_university_rosario_quinta_mutis (6 of 7)
+      Adding transtits for: colombia_university_rosario_quinta_mutis. Between: 2020-02-01 and 2020-07-13
+      Done
+   Current Time: 4.37 minutes
+
+   Excecuting: colombia_university_javeriana_cede_principal (7 of 7)
+      Adding transtits for: colombia_university_javeriana_cede_principal. Between: 2020-02-01 and 2020-07-13
+      Done
+   Current Time: 5.07 minutes
+
+
+-------------------
+Total Time: 5.07 minutes
+----------
+
+All Done
+OK
