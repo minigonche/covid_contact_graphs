@@ -274,7 +274,7 @@ def load_municipio(client, location_id, name, divipola, country = "Colombia", pr
 
 
 
-def compute_transits(client, location_id, start_date, end_date, precision = 1000, ident = '   '):
+def compute_transits(client, location_id, start_date, end_date, ident = '   '):
     '''
     Computes the identifiers transits for the given location between the dates. End date is not inclusive
     '''
@@ -294,7 +294,7 @@ def compute_transits(client, location_id, start_date, end_date, precision = 1000
       AND ST_DWithin(ST_GeogPoint(unacast.device_lon,
           unacast.device_lat),
         (SELECT geometry FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"),
-        {precision})
+        (SELECT precision FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"))
     GROUP BY  date, identifier
     """
     

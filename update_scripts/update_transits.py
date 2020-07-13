@@ -12,9 +12,6 @@ import utils
         
 def main():
 
-    # Precision
-    precision = 1000 #meters
-
     # Gets the coverage
     client = bigquery.Client(location="US")
     df_transits = utils.get_transits_coverage(client)
@@ -46,7 +43,7 @@ def main():
 
         print(f'   Excecuting: {location_id} ({i} of {total_locations})')
 
-        utils.compute_transits(client, location_id, start_date, end_date, precision = precision, ident = '      ')
+        utils.compute_transits(client, location_id, start_date, end_date, ident = '      ')
 
         print(f'   Current Time: {np.round((time.time() - start_time)/60,2)} minutes')
         print()
