@@ -45,7 +45,7 @@ update_graphs.main()
 print('--------------------------------------')
 print('')
 print('All Done')
-print('OK')
+print('-OK-')
 
 with open(os.path.join(current_path, 'excecution_logs/excecutions_timestamps.log'),'a') as f:
     f.write('Updated on: {}\n'.format(datetime.now()))
