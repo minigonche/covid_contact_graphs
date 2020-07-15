@@ -502,3 +502,185 @@ def update_contacts_for_depto_code(client, code_depto, start_time, end_time,
         print(ident + f'Total time: {np.round((time.time() - process_start)/60, 2)} minutes')
         print('-------------')
         print('')
+        
+        
+        
+        
+        
+def get_current_locations(client):
+    '''
+    Gets all the current locations
+    '''
+    
+    job_config = bigquery.QueryJobConfig()
+    
+    locations_table = "grafos-alcaldia-bogota.geo.locations_geometries"
+    
+    sql = f"""
+    SELECT DISTINCT location_id
+    FROM {locations_table}
+    """
+    
+    query_job = client.query(sql, job_config=job_config) 
+
+    # Return the results as a pandas DataFrame
+    df = query_job.to_dataframe()
+    
+    return(df)
+
+
+
+def get_date_range_for_graph_table(client, graph_name, min_date = None):
+    '''
+    Method that extracts the start date and end date for a given graphs table
+    '''
+    job_config = bigquery.QueryJobConfig()
+     
+    if min_date is None:
+        sql = f"""
+         SELECT MAX(date) as max_date
+            FROM grafos-alcaldia-bogota.graphs.{graph_name}
+        """
+    else:        
+        sql = f"""
+         SELECT MAX(date) as max_date
+            FROM grafos-alcaldia-bogota.graphs.{graph_name}
+            WHERE date >= "{min_date}"
+        """
+    query_job = client.query(sql, job_config=job_config) 
+
+    # Return the results as a pandas DataFrame
+    df = query_job.to_dataframe()
+    
+    return(df.max_date.iloc[0])
+
+
+
+def add_edglists_to_graph(client, graph_name, date):
+    '''
+    Method that adds the edges of the corresponding dates
+    '''
+    
+    destination_table_id = f"grafos-alcaldia-bogota.graphs.{graph_name}"
+    job_config = bigquery.QueryJobConfig(destination = destination_table_id, 
+                                         write_disposition = 'WRITE_APPEND')
+        
+    sql = f"""
+    
+        WITH tr as (
+          SELECT DISTINCT identifier
+          FROM grafos-alcaldia-bogota.transits.daily_transits
+          WHERE date = "{date}" AND location_id = "{graph_name}"
+        ), 
+        contacts as (
+          SELECT con.* 
+          FROM grafos-alcaldia-bogota.contactos_hour.all_locations as con
+          JOIN (SELECT code_depto FROM grafos-alcaldia-bogota.geo.locations_geo_codes WHERE location_id = "{graph_name}") codes
+          ON con.code_depto = codes.code_depto
+          WHERE con.date = "{date}"
+        )
+
+
+        SELECT filtered_contacts.*
+        FROM 
+        (SELECT contacts.*
+          FROM contacts
+          JOIN tr
+          ON contacts.id1 = tr.identifier) as filtered_contacts
+        JOIN tr
+        ON filtered_contacts.id2 = tr.identifier
+
+    """
+    
+
+    query_job = client.query(sql, job_config=job_config)  
+    query_job.result()
+    
+    return(query_job)
+
+
+def add_graph_table(client, graph_id):
+    '''
+    Method that creates a a graph table
+    '''
+    
+    table_id = client.dataset('graphs').table(graph_id)
+    schema = [  bigquery.SchemaField("id1", "STRING"),
+                bigquery.SchemaField("id2", "STRING"),
+                bigquery.SchemaField("date", "DATE"),
+                bigquery.SchemaField("hour", "INTEGER"),
+                bigquery.SchemaField("code_depto", "STRING"),
+                bigquery.SchemaField("lat", "FLOAT"),
+                bigquery.SchemaField("lon", "FLOAT"),            
+                bigquery.SchemaField("id1_device_accuracy", "FLOAT"),
+                bigquery.SchemaField("id2_device_accuracy", "FLOAT"),
+                bigquery.SchemaField("contacts", "INTEGER")
+    ]
+
+    # Creates
+    table = bigquery.Table(table_id, schema=schema)
+    table.time_partitioning = bigquery.TimePartitioning(
+        type_= bigquery.TimePartitioningType.DAY,
+        field="date",  # name of column to use for partitioning
+    ) 
+    table.clustering_fields = ['code_depto']
+
+
+    table = client.create_table(table)
+
+    
+    
+def get_last_graph_coverage(client):
+    '''
+    Gets the last saved graph coverage
+    '''
+    
+    job_config = bigquery.QueryJobConfig()
+    
+    table_id = 'grafos-alcaldia-bogota.coverage_dates.graphs_coverage'
+    
+    sql = f"""
+          SELECT *
+          FROM {table_id}
+            """
+    
+    try:
+        query_job = client.query(sql, job_config=job_config) 
+
+        # Return the results as a pandas DataFrame
+        df = query_job.to_dataframe()
+        return(df)
+    except:
+        return(None)
+    
+    
+    
+def refresh_graphs_coverage(client, df_coverage):
+    '''
+    Updates the graphs coverage
+    '''
+        
+    # resets index
+    df_coverage = df_coverage.reset_index(drop = True)
+    
+    # substracts one day for safety
+    df_coverage.end_date = df_coverage.end_date - timedelta(days = 1)
+    
+    table_id = 'grafos-alcaldia-bogota.coverage_dates.graphs_coverage'
+    # deletes the table
+    client.delete_table(table_id, not_found_ok=True)
+    
+    # Since string columns use the "object" dtype, pass in a (partial) schema
+    # to ensure the correct BigQuery data type.
+    job_config = bigquery.LoadJobConfig(schema=[
+        bigquery.SchemaField("location_id", "STRING"),
+        bigquery.SchemaField("start_date", "DATE"),
+        bigquery.SchemaField("end_date", "DATE"),
+    ])
+
+    job = client.load_table_from_dataframe(
+        df_coverage, table_id, job_config=job_config
+    )
+
+    # Wait for the load job to complete.
+    job.result()
