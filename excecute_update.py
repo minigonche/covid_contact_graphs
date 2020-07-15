@@ -14,26 +14,35 @@ sys.path.append(os.path.join(current_path,'update_scripts/'))
 from config import *
 import update_transits
 import update_contacts
+import update_graphs
 
 print('')
 print('')
 print('')
 print('----------------------------------------------------------------------------------------------------------------------------')
+print('----------------------------------------------------------------------------------------------------------------------------')
+print('----------------------------------------------------------------------------------------------------------------------------')
 print('Time: {}'.format(datetime.now()))
 print('Started Update Process')
-print('----------------')
+print('--------------------------------------')
 print()
 print('Contacts')
 print('')
 update_contacts.main()
 
-print('----------')
+print('--------------------------------------')
 print('')
 print('Tranits')
 print('')
 update_transits.main()
 
-print('----------')
+print('--------------------------------------')
+print('')
+print('Tranits')
+print('')
+update_graphs.main()
+
+print('--------------------------------------')
 print('')
 print('All Done')
 print('OK')
