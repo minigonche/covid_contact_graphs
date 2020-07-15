@@ -32,13 +32,13 @@ update_contacts.main()
 
 print('--------------------------------------')
 print('')
-print('Tranits')
+print('Transits')
 print('')
 update_transits.main()
 
 print('--------------------------------------')
 print('')
-print('Tranits')
+print('Edgelists')
 print('')
 update_graphs.main()
 

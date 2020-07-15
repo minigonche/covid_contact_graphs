@@ -14,7 +14,7 @@ def main():
     
     # Starts Client
     client = bigquery.Client(location="US")
-    
+
     dataset_id = 'grafos-alcaldia-bogota.graphs'
     dataset = client.get_dataset(dataset_id)  # Make an API request.
 
@@ -49,7 +49,7 @@ def main():
         if graph_name in df_locations.location_id:        
             max_date = utils.get_date_range_for_graph_table(client, graph_name, df_locations.loc[graph_name,'end_date'])
             df_locations.loc[graph_name,'end_date'] = max_date
-            
+
             if max_date is not None and  df_locations.loc[graph_name,'start_date'] is None:
                 df_locations.loc[graph_name,'start_date'] =  utils.global_min_date.date()
 
@@ -86,13 +86,13 @@ def main():
         if row.start_date is None:
             print(f"      No table found for {location_id}, creating table...")
             utils.add_graph_table(client, location_id)
-            df_locations.loc[ind, 'start_date'] = utils.global_min_date.date
+            df_locations.loc[ind, 'start_date'] = utils.global_min_date.date()
 
-        curent_date = utils.global_min_date
+        curent_date = utils.global_min_date.date()
         if row.end_date is not None:
             curent_date = (pd.to_datetime(row.end_date) + timedelta(days = 1))
 
-        final_date = today - timedelta(days = 1)
+        final_date = today.date() - timedelta(days = 1)
 
         while curent_date < final_date:
 
@@ -107,7 +107,7 @@ def main():
         print()
 
         #updates the value
-        df_locations.loc[ind, 'end_date'] = final_date - timedelta(days = 1) # Sets back 15 days, to avoid this script to run with transit failing
+        df_locations.loc[ind, 'end_date'] = final_date - timedelta(days = 10) # Sets back 10 days, to avoid this script to run with transit failing
 
     print('Saves coverage')
     utils.refresh_graphs_coverage(client, df_locations)
