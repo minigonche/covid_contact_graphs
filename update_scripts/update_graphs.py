@@ -92,7 +92,7 @@ def main():
         if row.end_date is not None:
             curent_date = (pd.to_datetime(row.end_date) + timedelta(days = 1))
 
-        final_date = today
+        final_date = today - timedelta(days = 1)
 
         while curent_date < final_date:
 
