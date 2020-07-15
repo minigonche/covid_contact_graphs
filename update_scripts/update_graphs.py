@@ -51,7 +51,7 @@ def main():
             df_locations.loc[graph_name,'end_date'] = max_date
             
             if max_date is not None and  df_locations.loc[graph_name,'start_date'] is None:
-                df_locations.loc[graph_name,'start_date'] =  utils.global_min_date
+                df_locations.loc[graph_name,'start_date'] =  utils.global_min_date.date()
 
     # Iterates over the missing places 
 
@@ -86,7 +86,7 @@ def main():
         if row.start_date is None:
             print(f"      No table found for {location_id}, creating table...")
             utils.add_graph_table(client, location_id)
-            df_locations.loc[ind, 'start_date'] = utils.global_min_date
+            df_locations.loc[ind, 'start_date'] = utils.global_min_date.date
 
         curent_date = utils.global_min_date
         if row.end_date is not None:
