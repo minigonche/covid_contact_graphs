@@ -506,3 +506,66 @@ Total Time: 0.23 minutes
 
 All Done
 OK----->
+
+
+
+----------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------
+Time: 2020-07-15 21:12:05.465812
+Started Update Process
+--------------------------------------
+
+Contacts
+
+Extracts Coverage Summary for all Locations 
+Updating for 1 codes
+
+Excecuting: VE.03 (1 of 1) from 2020-07-14 23:00:00 to 2020-07-15 00:00:00
+   Creating table contactos_temp_table, partitioned on column timestamp for depto_code: VE.03
+      Done. Records for VE.03 loaded to the table contactos_temp_table. Time: 0.06m
+
+   Started
+      Interval: From  2020-07-14 23:00:00 to 2020-07-15 00:00:00. Jump: 12 hours, Accuracy: 30. Excecution Time: 2.31s. Time Since Start: 0.0m
+
+   Done
+   Total time: 0.04 minutes
+-------------
+
+Global Time Ellapsed: 0.22 minutes
+
+Total time: 0.22 minutes
+--------------------------------------
+
+Transits
+
+Started
+   Excecuting: colombia_university_rosario_campus_norte (1 of 1)
+      Adding transtits for: colombia_university_rosario_campus_norte. Between: 2020-07-14 and 2020-07-15
+      Done
+   Current Time: 0.35 minutes
+
+
+-------------------
+Total Time: 0.35 minutes
+--------------------------------------
+
+Edgelists
+
+Extracting Coverage
+Started
+   Excecuting: colombia_university_andes_cede_principal (1 of 2)
+   Current Time: 0.0 minutes
+
+   Excecuting: colombia_university_rosario_campus_norte (2 of 2)
+      Computing 2020-07-13 00:00:00
+   Current Time: 0.05 minutes
+
+Saves coverage
+
+-------------------
+Total Time: 0.15 minutes
+--------------------------------------
+
+All Done
+OK----->
