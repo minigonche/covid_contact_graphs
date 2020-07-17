@@ -21,7 +21,7 @@ def main():
     df_locations =  utils.get_current_locations(client)
     
     # Gets the ones with geo_codes
-    df_codes = utils. get_locations_with_geo_codes(client)
+    df_codes = utils.get_locations_with_geo_codes(client)
     
     df_locations = df_locations[~df_locations.location_id.isin(df_codes.location_id)]
     

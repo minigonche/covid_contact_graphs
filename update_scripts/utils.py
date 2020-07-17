@@ -4,6 +4,7 @@
 
 from google.cloud import bigquery
 from google.api_core.exceptions import BadRequest
+from google.cloud.exceptions import NotFound
 import pandas as pd
 import time
 import numpy as np
@@ -43,14 +44,29 @@ def get_current_locations(client):
     '''
     
     sql = f"""
-            SELECT location_id
+            SELECT location_id, precision, dataset
             FROM grafos-alcaldia-bogota.geo.locations_geometries
-            GROUP BY location_id
+            GROUP BY location_id, precision, dataset
     """
     
     return( run_simple_query(client, sql))
 
 
+def get_tables_from_dataset(client, dataset_id):    
+    '''
+    Gets a list of all the tables in a dataset
+    
+    None if the dataset does not exists
+    '''
+    
+    try:
+        dataset = client.get_dataset(f"grafos-alcaldia-bogota.{dataset_id}")  # Make an API request.            
+        tables = [t.table_id for t in  list(client.list_tables(dataset))]
+        
+        return(tables)
+    
+    except NotFound:
+        return None
 
 def create_temp_table(client, table_name, code_depto, start_date, end_date, accuracy = 30):
     '''
@@ -485,7 +501,7 @@ def update_contacts_for_depto_code(client, code_depto, start_time, end_time,
     
 
 
-def get_date_range_for_graph_table(client, graph_name, min_date = None):
+def get_max_date_for_graph_table(client, dataset, graph_name, min_date = None):
     '''
     Method that extracts the start date and end date for a given graphs table
     '''
@@ -494,12 +510,12 @@ def get_date_range_for_graph_table(client, graph_name, min_date = None):
     if min_date is None:
         sql = f"""
          SELECT MAX(date) as max_date
-            FROM grafos-alcaldia-bogota.graphs.{graph_name}
+            FROM grafos-alcaldia-bogota.{dataset}.{graph_name}
         """
     else:        
         sql = f"""
          SELECT MAX(date) as max_date
-            FROM grafos-alcaldia-bogota.graphs.{graph_name}
+            FROM grafos-alcaldia-bogota.{dataset}.{graph_name}
             WHERE date >= "{min_date}"
         """
     query_job = client.query(sql, job_config=job_config) 
@@ -509,14 +525,31 @@ def get_date_range_for_graph_table(client, graph_name, min_date = None):
     
     return(df.max_date.iloc[0])
 
+def get_min_date_for_graph_table(client, dataset, graph_name):
+    '''
+    Method that extracts the start date and end date for a given graphs table
+    '''
+    job_config = bigquery.QueryJobConfig()
+     
+
+    sql = f"""
+         SELECT MIN(date) as min_date
+            FROM grafos-alcaldia-bogota.{dataset}.{graph_name}
+        """
+    query_job = client.query(sql, job_config=job_config) 
+
+    # Return the results as a pandas DataFrame
+    df = query_job.to_dataframe()
+    
+    return(df.min_date.iloc[0])
 
 
-def add_edglists_to_graph(client, graph_name, date):
+def add_edglists_to_graph(client, dataset_id, graph_name, date):
     '''
     Method that adds the edges of the corresponding dates
     '''
     
-    destination_table_id = f"grafos-alcaldia-bogota.graphs.{graph_name}"
+    destination_table_id = f"grafos-alcaldia-bogota.{dataset_id}.{graph_name}"
     job_config = bigquery.QueryJobConfig(destination = destination_table_id, 
                                          write_disposition = 'WRITE_APPEND')
         
@@ -554,12 +587,20 @@ def add_edglists_to_graph(client, graph_name, date):
     return(query_job)
 
 
-def add_graph_table(client, graph_id):
+def create_dataset(client, dataset_id):
+    '''
+    Method that creates a given dataset
+    '''
+    
+    # Creates
+    dataset = client.create_dataset(dataset_id) 
+
+def create_edgelist_table(client, dataset, graph_id):
     '''
     Method that creates a a graph table
     '''
     
-    table_id = client.dataset('graphs').table(graph_id)
+    table_id = client.dataset(dataset).table(graph_id)
     schema = [  bigquery.SchemaField("id1", "STRING"),
                 bigquery.SchemaField("id2", "STRING"),
                 bigquery.SchemaField("date", "DATE"),
@@ -580,7 +621,7 @@ def add_graph_table(client, graph_id):
     ) 
     table.clustering_fields = ['code_depto']
 
-
+    # Creates
     table = client.create_table(table)
 
     
@@ -608,7 +649,7 @@ def get_last_graph_coverage(client):
     except:
         return(None)
     
-    
+
     
 def refresh_graphs_coverage(client, df_coverage):
     '''
@@ -639,3 +680,71 @@ def refresh_graphs_coverage(client, df_coverage):
 
     # Wait for the load job to complete.
     job.result()
+    
+    
+    
+def get_edgelists_coverage(client):
+    
+    # gets locations
+    df_locations = get_current_locations(client)
+    
+    # Starts the dates
+    df_locations['start_date'] = None
+    df_locations['end_date'] = None
+    df_locations['dataset_exists'] = False
+    df_locations['table_exists'] = False
+    
+    # Sets the index
+    df_locations.index = df_locations.location_id
+    
+    # Sets the minimum date
+    
+        
+    # Loads old coverage (to bring costs down)
+    df_old_coverage = get_last_graph_coverage(client)
+    
+    if df_old_coverage is not None:
+        for ind, row in df_old_coverage.iterrows():
+            df_locations.loc[row.location_id,'start_date'] = row.start_date
+            df_locations.loc[row.location_id,'end_date'] = row.end_date
+            
+    # Extracts final dates
+    for ind, row in df_locations.iterrows():
+        
+        
+        # extracts tables        
+        tables = get_tables_from_dataset(client, row.dataset)
+        if tables is None:
+            # No dataset found
+            continue
+        
+        # Dataset exists
+        df_locations.loc[ind, 'dataset_exists'] = True
+
+        # If table exists
+        if row.location_id in tables:
+
+            # Sets parameter
+            df_locations.loc[ind, 'table_exists'] = True
+
+            # Extracts min date (if missing)
+            if pd.isna(df_locations.loc[ind,'start_date']):
+                min_date = get_min_date_for_graph_table(client, row.dataset, row.location_id)
+                df_locations.loc[ind,'start_date'] = min_date
+
+
+            # Extracts max date
+            max_date = get_max_date_for_graph_table(client, row.dataset, row.location_id, df_locations.loc[ind,'end_date'])
+            df_locations.loc[ind,'end_date'] = max_date
+            # Updates                
+    
+    
+    # Checks for consistency
+    with_error = df_locations[(df_locations.start_date.isna()) | (df_locations.end_date.isna())]
+    with_error = with_error[~((with_error.start_date.isna()) & (with_error.end_date.isna()))]
+    
+    if with_error.shape[0] > 0:
+        print(with_error)
+        raise ValueError('Start Date and end date must both be none or none of them')
+    
+    return(df_locations)
