@@ -15,6 +15,7 @@ from config import *
 import update_transits
 import update_contacts
 import update_graphs
+import update_depto_codes
 
 print('')
 print('')
@@ -24,6 +25,12 @@ print('-------------------------------------------------------------------------
 print('----------------------------------------------------------------------------------------------------------------------------')
 print('Time: {}'.format(datetime.now()))
 print('Started Update Process')
+print('--------------------------------------')
+print()
+print('Depto Codes')
+print('')
+update_depto_codes.main()
+
 print('--------------------------------------')
 print()
 print('Contacts')
@@ -45,12 +52,8 @@ update_graphs.main()
 print('--------------------------------------')
 print('')
 print('All Done')
-print('<-----OK----->')
+print('<-OK->')
 
 with open(os.path.join(current_path, 'excecution_logs/excecutions_timestamps.log'),'a') as f:
     f.write('Updated on: {}\n'.format(datetime.now()))
 
-#print('Shuting down ')
-#service = discovery.build('compute' ,'v1', cache_discovery=False)
-#request = service.instances().stop(project=project, zone=zone, instance=instance)
-#response = request.execute()

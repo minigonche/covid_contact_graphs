@@ -47,15 +47,16 @@ def main():
         # Extracts the table id
         graph_name = table.table_id
         if graph_name in df_locations.location_id:        
+            
             max_date = utils.get_date_range_for_graph_table(client, graph_name, df_locations.loc[graph_name,'end_date'])
             df_locations.loc[graph_name,'end_date'] = max_date
 
-            if max_date is not None and  df_locations.loc[graph_name,'start_date'] is None:
+            if not pd.isna(max_date) and  pd.isna(df_locations.loc[graph_name,'start_date']):
                 df_locations.loc[graph_name,'start_date'] =  utils.global_min_date.date()
 
     # Iterates over the missing places 
 
-    today = pd.to_datetime(datetime.today())
+    today = pd.to_datetime(datetime.today()) - timedelta(days = 1) # Substracts one day so that it does not compute partial days
 
     #DEBUG
     #today = pd.to_datetime("2020-07-10")
@@ -83,16 +84,16 @@ def main():
         print(f'   Excecuting: {location_id} ({i} of {total_locations})')
 
         # Checks if the table exists (if the end_date is null)
-        if row.start_date is None:
+        if pd.isna(row.start_date):
             print(f"      No table found for {location_id}, creating table...")
             utils.add_graph_table(client, location_id)
             df_locations.loc[ind, 'start_date'] = utils.global_min_date.date()
 
         curent_date = utils.global_min_date.date()
-        if row.end_date is not None:
+        if not pd.isna(row.end_date):
             curent_date = (pd.to_datetime(row.end_date) + timedelta(days = 1))
 
-        final_date = today.date() - timedelta(days = 1)
+        final_date = today.date()
 
         while curent_date < final_date:
 
@@ -105,9 +106,14 @@ def main():
 
         print(f'   Current Time: {np.round((time.time() - start_time)/60,2)} minutes')
         print()
-
+        
+        df_locations.loc[ind, 'end_date'] = final_date - timedelta(days = 1)
+    
+    
+    # Sends the dates back 10 days for safety
+    for ind, row in df_locations.iterrows():        
         #updates the value
-        df_locations.loc[ind, 'end_date'] = final_date - timedelta(days = 10) # Sets back 10 days, to avoid this script to run with transit failing
+        df_locations.loc[ind, 'end_date'] = df_locations.loc[ind, 'end_date'] - timedelta(days = 10) # Sets back 10 days, to avoid this script to run with transit failing
 
     print('Saves coverage')
     utils.refresh_graphs_coverage(client, df_locations)

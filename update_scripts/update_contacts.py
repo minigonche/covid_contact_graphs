@@ -48,7 +48,7 @@ def main():
         i += 1
 
         start_time = utils.global_min_date
-        if row.max_date is not None:
+        if not pd.isna(row.max_date):
             start_time = pd.to_datetime(row.max_date) + timedelta(hours = 1)
 
         # Today

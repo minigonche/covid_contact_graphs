@@ -21,6 +21,37 @@ date_format = '%Y-%m-%d'
 # Global temp dataset
 temp_data_set_id = "download_temp"
 
+
+def run_simple_query(client, query):
+    '''
+    Method that runs a simple query
+    '''
+    
+    job_config = bigquery.QueryJobConfig()
+    query_job = client.query(query, job_config=job_config) 
+
+    # Return the results as a pandas DataFrame
+    df = query_job.to_dataframe()
+    
+    return(df)
+    
+
+    
+def get_current_locations(client):
+    '''
+    Gets all the current locations
+    '''
+    
+    sql = f"""
+            SELECT location_id
+            FROM grafos-alcaldia-bogota.geo.locations_geometries
+            GROUP BY location_id
+    """
+    
+    return( run_simple_query(client, sql))
+
+
+
 def create_temp_table(client, table_name, code_depto, start_date, end_date, accuracy = 30):
     '''
     Creates a temporal table with the given table name 
@@ -162,44 +193,33 @@ def append_by_time_window(client, start_timestamp, end_timestamp, code_depto, so
 
 
 
-
-def load_departmento(client, location_id, name, department_name, country = "Colombia", precision = 1000):
+def add_code_deptos(client, location_id):
     '''
-    Method that loads a location to the geographic tables.
-    
-    precision is in meters
+    Method that adds the depto codes for the given location id
     '''
     
-    print(f'Adding: {name}, {country} ({location_id})')
-    
-    # Inserts Geometry
-    query = f"""
-            INSERT INTO grafos-alcaldia-bogota.geo.locations_geometries (location_id, country, name, geometry)
-            SELECT "{location_id}" as location_id,
-                   "{country}" as country,
-                   "{name}" as name,
-                   geometry
-            FROM grafos-alcaldia-bogota.geo.colombia_departamentos
-            WHERE name = "{department_name}"
+    sql = f"""
+        SELECT location_id
+        FROM grafos-alcaldia-bogota.geo.locations_geo_codes
+        GROUP BY location_id
     """
     
-    print('   Adding Geometry')
-    query_job = client.query(query, job_config= bigquery.QueryJobConfig()) 
-    query_job.result()
+    df_locations = run_simple_query(client, sql)
     
+    if location_id in df_locations.location_id:
+        print('Location id: {} is already in the locations_geo_codes table. Nothing will be added')
+        return(False)
     
-    print('   Adding Province Codes')
-    
+
+
     query = f"""
             SELECT
               "{location_id}" as location_id,
-              "{country}" as country,
-              "{name}" as name,
               province_short as code_depto
             FROM
               `servinf-unacast-prod.unacasttest.unacast_positions_partitioned` AS unacast
             WHERE
-              date = "2020-06-26"
+              date >= "2020-04-01" AND date <= "2020-04-03"
               AND ST_DWithin(ST_GeogPoint(unacast.device_lon,
                   unacast.device_lat),
                 (SELECT geometry FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"),
@@ -209,70 +229,28 @@ def load_departmento(client, location_id, name, department_name, country = "Colo
     
     job_config= bigquery.QueryJobConfig(destination= "grafos-alcaldia-bogota.geo.locations_geo_codes",
                                         write_disposition = 'WRITE_APPEND')
+    
     query_job = client.query(query, job_config= job_config) 
     query_job.result()
-    
-    print('Done')
-    
-    return('OK')
+        
+    return(True)
 
 
-
-
-def load_municipio(client, location_id, name, divipola, country = "Colombia", precision = 1000):
-    '''
-    Method that loads a location to the geographic tables.
+def get_locations_with_geo_codes(client):
     
-    precision is in meters
-    '''
     
-    print(f'Adding: {name}, {country} ({divipola})')
-    
-    # Inserts Geometry
-    query = f"""
-            INSERT INTO grafos-alcaldia-bogota.geo.locations_geometries (location_id, country, name, geometry)
-            SELECT "{location_id}" as location_id,
-                   "{country}" as country,
-                   "{name}" as name,
-                   geometry
-            FROM grafos-alcaldia-bogota.geo.colombia_municipios
-            WHERE divipola = {divipola}
+    sql = f"""
+        SELECT location_id, COUNT(*) num_codes
+        FROM grafos-alcaldia-bogota.geo.locations_geo_codes
+        GROUP BY location_id
     """
     
-    print('   Adding Geometry')
-    query_job = client.query(query, job_config= bigquery.QueryJobConfig()) 
-    query_job.result()
+    df_locations = run_simple_query(client, sql)
+    
+    return(df_locations)
     
     
-    print('   Adding Province Codes')
     
-    query = f"""
-            SELECT
-              "{location_id}" as location_id,
-              "{country}" as country,
-              "{name}" as name,
-              province_short as code_depto
-            FROM
-              `servinf-unacast-prod.unacasttest.unacast_positions_partitioned` AS unacast
-            WHERE
-              date = "2020-06-26"
-              AND ST_DWithin(ST_GeogPoint(unacast.device_lon,
-                  unacast.device_lat),
-                (SELECT geometry FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"),
-                1000)
-            GROUP BY  province_short
-    """
-    
-    job_config= bigquery.QueryJobConfig(destination= "grafos-alcaldia-bogota.geo.locations_geo_codes",
-                                        write_disposition = 'WRITE_APPEND')
-    query_job = client.query(query, job_config= job_config) 
-    query_job.result()
-    
-    print('Done')
-    
-    return('OK')
-
-
 
 def compute_transits(client, location_id, start_date, end_date, ident = '   '):
     '''
@@ -504,30 +482,7 @@ def update_contacts_for_depto_code(client, code_depto, start_time, end_time,
         print('')
         
         
-        
-        
-        
-def get_current_locations(client):
-    '''
-    Gets all the current locations
-    '''
     
-    job_config = bigquery.QueryJobConfig()
-    
-    locations_table = "grafos-alcaldia-bogota.geo.locations_geometries"
-    
-    sql = f"""
-    SELECT DISTINCT location_id
-    FROM {locations_table}
-    """
-    
-    query_job = client.query(sql, job_config=job_config) 
-
-    # Return the results as a pandas DataFrame
-    df = query_job.to_dataframe()
-    
-    return(df)
-
 
 
 def get_date_range_for_graph_table(client, graph_name, min_date = None):
