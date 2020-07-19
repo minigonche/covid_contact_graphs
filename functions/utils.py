@@ -23,6 +23,47 @@ date_format = '%Y-%m-%d'
 temp_data_set_id = "download_temp"
 
 
+
+graphs_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.graph_attributes'
+nodes_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.node_attributes'
+
+def get_year_and_week_of_date(d):
+    '''
+    Returns the year and week of the year of the given date.
+    First week is 1
+    
+    d is pandas.datetime
+    
+    will raise an error if the given date is not a sunday
+    '''
+    
+    if d.dayofweek != 6:
+        raise ValueError('Extraction of week is only supported for sundays. But received: {}'.format(d))
+    
+    
+    return(d.date().year,  d.date().isocalendar()[1])
+
+
+
+def get_date_of_week(year, week):
+    '''
+    Returns the year and week of the year of the given date.
+    
+    Assumes first week is 1
+    
+    d is pandas.datetime
+    '''
+    
+    if week <= 0:
+        raise ValueError("Min week is 1, but {} received".format(week))
+    if week > 53:
+        raise ValueError("Min week is 53, but {} received".format(week))
+        
+    d = f"{year}-W{week -1}"
+    r = pd.to_datetime(datetime.strptime(d + '-0', "%Y-W%W-%w"))
+    
+    return(r)
+
 def run_simple_query(client, query):
     '''
     Method that runs a simple query
@@ -52,6 +93,102 @@ def get_current_locations(client):
     return( run_simple_query(client, sql))
 
 
+def get_dataset_of_location(client, location_id ):
+    '''
+    Gets the dataset of the given location id
+    '''
+
+    df = get_current_locations(client)
+    df.index = df.location_id
+
+    return(df.loc[location_id, 'dataset'])
+
+
+
+def node_attribute_exists(client, location_id, attribute_name, date):
+    '''
+    Checks if the attribute is already computed for the given location at the given date.
+
+    date must be in %Y-%m-%d format.
+    '''
+
+
+    query = f"""
+
+        SELECT attribute_name, attribute_value
+        FROM {nodes_attribute_table}
+        WHERE attribute_name = "{attribute_name}"
+              AND location_id = "{location_id}"
+              AND date = "{date}"
+        LIMIT 1
+    """
+
+    df = run_simple_query(client, query):
+
+    return(df.shape[0] > 0)
+
+
+def graph_attribute_exists(client, location_id, attribute_name, date):
+    '''
+    Checks if the attribute is already computed for the given location at the given date.
+
+    date must be in %Y-%m-%d format.
+    '''
+
+
+    query = f"""
+
+        SELECT identifier, attribute_name, attribute_value
+        FROM {graphs_attribute_table}
+        WHERE attribute_name = "{attribute_name}"
+              AND location_id = "{location_id}"
+              AND date = "{date}"
+        LIMIT 1
+    """
+
+    df = run_simple_query(client, query):
+
+    return(df.shape[0] > 0)
+
+
+
+def insert_node_attributes(client, df):
+    '''
+    Method that appends the nodes attributes
+
+    This method assumes that the columns of the df are the same as the ones in the table
+    '''
+
+    # Since string columns use the "object" dtype, pass in a (partial) schema
+    # to ensure the correct BigQuery data type.
+    job_config = bigquery.LoadJobConfig()
+
+    job = client.load_table_from_dataframe(
+        df, nodes_attribute_table, job_config=job_config)
+
+    # Wait for the load job to complete.
+    job.result()
+
+
+def insert_graphs_attributes(client, df):
+    '''
+    Method that appends the nodes attributes
+
+    This method assumes that the columns of the df are the same as the ones in the table
+    '''
+
+    # Since string columns use the "object" dtype, pass in a (partial) schema
+    # to ensure the correct BigQuery data type.
+    job_config = bigquery.LoadJobConfig()
+
+    job = client.load_table_from_dataframe(
+        df, graphs_attribute_table, job_config=job_config)
+
+    # Wait for the load job to complete.
+    job.result()
+
+
+
 def get_tables_from_dataset(client, dataset_id):    
     '''
     Gets a list of all the tables in a dataset
@@ -67,6 +204,38 @@ def get_tables_from_dataset(client, dataset_id):
     
     except NotFound:
         return None
+
+
+def get_max_dates_for_graph_attribute(client, attribute_name):
+    '''
+    Method that gets the max dates of a given attribute
+    '''
+
+    sql = f"""
+        SELECT attribute_name, location_id, MAX(date) as mac_date
+        FROM grafos-alcaldia-bogota.graph_attributes.graph_attributes
+        WHERE attribute_name = "{attribute_name}"
+        GROUP BY attribute_name, location_id
+    """
+
+    return(run_simple_query(client, query))
+
+
+def get_max_dates_for_node_attribute(client, attribute_name):
+    '''
+    Method that gets the max dates of a given attribute
+    '''
+
+    sql = f"""
+        SELECT attribute_name, location_id, MAX(date) as mac_date
+        FROM grafos-alcaldia-bogota.graph_attributes.node_attributes
+        WHERE attribute_name = "{attribute_name}"
+        GROUP BY attribute_name, location_id
+    """
+
+    return(run_simple_query(client, query))
+
+
 
 def create_temp_table(client, table_name, code_depto, start_date, end_date, accuracy = 30):
     '''

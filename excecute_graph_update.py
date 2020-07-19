@@ -8,7 +8,8 @@ current_path = pathlib.Path(__file__).parent.absolute()
 
 # Adds the location of the scripts
 sys.path.append(current_path)
-sys.path.append(os.path.join(current_path,'update_scripts/'))
+sys.path.append(os.path.join(current_path,'update_graphs/'))
+sys.path.append(os.path.join(current_path,'functions/'))
 
 # Imports the scripts
 from config import *
