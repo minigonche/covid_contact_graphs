@@ -4,11 +4,11 @@
 
 # imports all the attributes
 # Graphs
-import  graphs_attrbutes.graph_size as graph_size
-import util
+import  graphs_attributes.graph_size as graph_size
+import utils
 from google.cloud import bigquery
 from datetime import datetime, timedelta
-
+import pandas as pd
 # Nodes
 
 
@@ -22,7 +22,7 @@ all_graph_attributes.append(graph_size.GraphSize())
 
 # Include here the desired node attributes
 # ------------------------------------
-all_nodes_attributes = []
+all_node_attributes = []
 
 
 
@@ -31,13 +31,13 @@ def main():
 
     # Extracts the current date
     # Extracts the current date. Substract one day and the goes back to the colsest sunday
-    end_date = datetime.today() - timedelta(days = 1)
+    end_date = pd.to_datetime(datetime.today()) - timedelta(days = 1)
     while end_date.dayofweek != 6:
         end_date = end_date - timedelta(days = 1)         
 
     # Extracts the locations
     client = bigquery.Client(location="US")
-    df_locations_all = util.get_current_locations(client)
+    df_locations_all = utils.get_current_locations(client)
 
 
 
@@ -47,11 +47,11 @@ def main():
     # Excecutes all the graph attributes
     for g_att in all_graph_attributes:
         
-        print(f'   Coputing { g_att.attribute_name}.')
-        df_att = util.get_max_dates_for_graph_attribute(client, g_att.attribute_name)
+        print(f'   Computing { g_att.attribute_name}.')
+        df_att = utils.get_max_dates_for_graph_attribute(client, g_att.attribute_name)
 
         # Merges
-        df_current = df_locations_all[['location_id']],merge(df_att, on = 'location_id', how = 'left')
+        df_current = df_locations_all[['location_id']].merge(df_att, on = 'location_id', how = 'left')
 
         # Filters out
         selected = df_current[(df_current.max_date.isna()) | (df_current.max_date < end_date)]
@@ -66,19 +66,19 @@ def main():
             else:
                 start_date = row.max_date + timedelta(days = 7) # Next sunday
 
-            print(f'         Calculating for {row.location_id}, from: {start_date} to {end_date}')
+            print(f'         Calculating for {row.location_id}, from: {start_date.date()} to {end_date.date()}')
 
             current_date = start_date
-            while start_date <= end_date:
+            while current_date <= end_date:
 
-                if g_att.location_id_supported(row.location_id, current_date)
-                    year, week = util.get_year_and_week_of_date(current_date)
+                if g_att.location_id_supported(row.location_id, current_date):
+                    year, week = utils.get_year_and_week_of_date(current_date)
                     g_att.save_attribute_for_week(row.location_id, year, week)
-                    print(f'            {current_date}: OK.')
+                    print(f'            {current_date.date()}: OK.')
                 else:
-                    print(f'            {current_date}: Skipped by implementation.')
+                    print(f'            {current_date.date()}: Skipped by implementation.')
 
-            current_date = current_date + timedelta(days = 7)
+                current_date = current_date + timedelta(days = 7)
 
 
     print()
@@ -116,7 +116,7 @@ def main():
             current_date = start_date
             while start_date <= end_date:
 
-                if n_att.location_id_supported(row.location_id, current_date)
+                if n_att.location_id_supported(row.location_id, current_date):
                     year, week = util.get_year_and_week_of_date(current_date)
                     n_att.save_attribute_for_week(row.location_id, year, week)
                     print(f'            {current_date}: OK.')

@@ -123,7 +123,7 @@ def node_attribute_exists(client, location_id, attribute_name, date):
         LIMIT 1
     """
 
-    df = run_simple_query(client, query):
+    df = run_simple_query(client, query)
 
     return(df.shape[0] > 0)
 
@@ -138,7 +138,7 @@ def graph_attribute_exists(client, location_id, attribute_name, date):
 
     query = f"""
 
-        SELECT identifier, attribute_name, attribute_value
+        SELECT attribute_name, attribute_value
         FROM {graphs_attribute_table}
         WHERE attribute_name = "{attribute_name}"
               AND location_id = "{location_id}"
@@ -146,7 +146,7 @@ def graph_attribute_exists(client, location_id, attribute_name, date):
         LIMIT 1
     """
 
-    df = run_simple_query(client, query):
+    df = run_simple_query(client, query)
 
     return(df.shape[0] > 0)
 
@@ -176,7 +176,8 @@ def insert_graphs_attributes(client, df):
 
     This method assumes that the columns of the df are the same as the ones in the table
     '''
-
+    
+    
     # Since string columns use the "object" dtype, pass in a (partial) schema
     # to ensure the correct BigQuery data type.
     job_config = bigquery.LoadJobConfig()
@@ -212,13 +213,13 @@ def get_max_dates_for_graph_attribute(client, attribute_name):
     '''
 
     sql = f"""
-        SELECT attribute_name, location_id, MAX(date) as mac_date
+        SELECT attribute_name, location_id, MAX(date) as max_date
         FROM grafos-alcaldia-bogota.graph_attributes.graph_attributes
         WHERE attribute_name = "{attribute_name}"
         GROUP BY attribute_name, location_id
     """
 
-    return(run_simple_query(client, query))
+    return(run_simple_query(client, sql))
 
 
 def get_max_dates_for_node_attribute(client, attribute_name):
@@ -227,13 +228,13 @@ def get_max_dates_for_node_attribute(client, attribute_name):
     '''
 
     sql = f"""
-        SELECT attribute_name, location_id, MAX(date) as mac_date
+        SELECT attribute_name, location_id, MAX(date) as max_date
         FROM grafos-alcaldia-bogota.graph_attributes.node_attributes
         WHERE attribute_name = "{attribute_name}"
         GROUP BY attribute_name, location_id
     """
 
-    return(run_simple_query(client, query))
+    return(run_simple_query(client, sql))
 
 
 

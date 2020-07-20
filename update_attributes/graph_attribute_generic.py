@@ -1,17 +1,19 @@
 # Generic Graph Attribute
 
 from attribute_generic import GenericWeeklyAttribute
-import util
-
+import attribute_generic
+import utils
+from datetime import datetime, timedelta
+import pandas as pd
 
 class GenericGraphAttribute(GenericWeeklyAttribute):
     '''
     Class for the Generic Graph Attribute
     '''
 
-    def __init__(self, attribute_name):
+    def __init__(self, attribute_name, starting_date = attribute_generic.starting_date):
         # Initilizes the super class
-        GenericWeeklyAttribute.__init__(self, attribute_name):
+        GenericWeeklyAttribute.__init__(self, attribute_name,  starting_date)
 
 
 
@@ -31,10 +33,10 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
             - Exception if the the result does not contain the defined  strucure. See GenericWeeklyAttribute.compute_attribute
         '''
 
-        date_time = util.get_date_of_week(year, week)
+        date_time = utils.get_date_of_week(year, week)
         date_string = date_time.strftime( utils.date_format)
 
-        if util.graph_attribute_exists(self.client, graph_id, self.attribute_name, date_string):
+        if utils.graph_attribute_exists(self.client, graph_id, self.attribute_name, date_string):
             raise ValueError(f'Attribute: {self.attribute_name} already exists for {date_string}')
 
 
@@ -51,12 +53,18 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
         if 'value' not in df_result.columns:
             raise ValueError(f'The column "value" was not found in the columns {df_result.columns}')
 
-        df_results.rename(columns {'value':'attribute_value'}, inplace = True)
+        df_result.rename(columns = {'value':'attribute_value'}, inplace = True)
         # Adds the columns
         df_result['location_id'] = graph_id
         df_result['date'] = date_string
         df_result['attribute_name'] = self.attribute_name
 
         df_result = df_result[['location_id','date','attribute_name','attribute_value']]
-
-        util.insert_graph_attributes(seld.client, df_result)
+        
+        # Sets the types
+        df_result.location_id = df_result.location_id.astype(str)
+        df_result.date = df_result.date.apply(lambda d: pd.to_datetime(d))
+        df_result.attribute_name = df_result.attribute_name.astype(str)
+        df_result.attribute_value = df_result.attribute_value.astype(float)
+        
+        utils.insert_graphs_attributes(self.client, df_result)

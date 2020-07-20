@@ -2,9 +2,11 @@
 
 
 from graph_attribute_generic import GenericGraphAttribute
+import pandas as pd
 
+attribute_name = 'graph_size'
 
-parameter_name = 'graph_size'
+starting_date = pd.to_datetime("2020-06-28")
 
 
 class GraphSize(GenericGraphAttribute):
@@ -14,7 +16,7 @@ class GraphSize(GenericGraphAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, attribute_name)
+        GenericGraphAttribute.__init__(self, attribute_name, starting_date)
 
 
     def compute_attribute(self, nodes, edges):
@@ -45,3 +47,25 @@ class GraphSize(GenericGraphAttribute):
         df = pd.DataFrame({'value':[nodes.shape[0]]})
 
         return(df)
+    
+    
+    def location_id_supported(self, location_id, current_date):
+        '''
+        Method that determines if the attribute is supported for the location_id (graph)
+        The default implementation is to return True if the current date is equal or larger that the starting_date.
+        Overwrite this method in case the attribute is not supported for a certain location_id (or several) at a particular date
+    
+        NOTE: This method is called several times inside a loop. Make sure you don't acces any expensive resources in the implementation.
+        
+        params
+            - location_id (str)
+            - current_date (pd.datetime): the current datetime
+
+        returns
+            Boolean
+        '''
+        
+        if location_id != 'colombia_boyaca':
+            return(False)
+        
+        return(current_date >= self.starting_date)

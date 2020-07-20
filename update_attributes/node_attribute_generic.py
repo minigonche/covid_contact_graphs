@@ -1,8 +1,8 @@
 # Generic Node Attribute
 
 from attribute_generic import GenericWeeklyAttribute
-import util
-
+import utils
+from datetime import datetime, timedelta
 
 class GenericNodeAttribute(GenericWeeklyAttribute):
     '''

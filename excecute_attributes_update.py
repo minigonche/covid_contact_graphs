@@ -15,9 +15,6 @@ sys.path.append(os.path.join(current_path,'functions/'))
 # Imports the scripts
 from config import *
 import update_attributes
-import update_contacts
-import update_graphs
-import update_depto_codes
 
 print('')
 print('')

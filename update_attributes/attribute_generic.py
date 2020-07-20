@@ -1,6 +1,6 @@
 # Generic Attribute Class
 # This class serves as the abstract class for computing attributes
-import util
+import utils
 from google.cloud import bigquery
 import pandas as pd
 from datetime import datetime, timedelta
@@ -37,9 +37,6 @@ class GenericWeeklyAttribute():
         # Saves the attribute_name
         self.attribute_name = attribute_name
 
-        # Saves the attribute type
-        self.attribute_type = attribute_type
-
         # Saves the starting date
         # Adjusts starting date so that is sunday (or else it will not be consistent with the database)
         self.starting_date = starting_date
@@ -50,7 +47,6 @@ class GenericWeeklyAttribute():
 
 
     # --- Global Abstract Methods
-    @abstractmethod
     def compute_attribute(self, nodes, edges):
         '''
         # TODO
@@ -144,31 +140,6 @@ class GenericWeeklyAttribute():
 
         raise NotImplementedError
 
-        date_time = util.get_date_of_week(year, week)
-        date_string = date_time.strftime( utils.date_format)
-
-        if self.attribute_exists(graph_id, date_string):
-            raise ValueError(f'Attribute: {self.attribute_name} already exists for {date_string}')
-
-
-        # Goes back 7 days
-        start_date_string = (date_time - timedelta(days = 7)).strftime( utils.date_format)
-        end_date_string = date_string
-
-        # Computes
-        df_result = self.compute_attribute_for_interval(graph_id, start_date_string, end_date_string)
-
-
-
-
-        if self.attribute_type == NODE:
-            return(util.insert_node_attributes(seld.client, df_result))
-        elif self.attribute_type == GRAPH:
-            return(util.insert_graph_attributes(seld.client, df_result))
-        else:
-            raise ValueError(f'Attribute type {self.attribute_type} not supported')
-
-
 
     # -- Other Methods
 
@@ -185,13 +156,13 @@ class GenericWeeklyAttribute():
             pd.DataFrame with the ungrouped edglist. It has the same structure as the edglist table
         '''
 
-        dataset_id = util.get_dataset_of_location(self.client, graph_id)
+        dataset_id = utils.get_dataset_of_location(self.client, graph_id)
 
         query = f"""
 
             SELECT *
             FROM grafos-alcaldia-bogota.{dataset_id}.{graph_id}
-            WHERE date >= {start_date_string} AND date <= {end_date_string}
+            WHERE date >= "{start_date_string}" AND date <= "{end_date_string}"
 
         """
 
@@ -219,13 +190,13 @@ class GenericWeeklyAttribute():
                 - id2 (str)
                 - weight (num) : sum of contacts
         '''
-        dataset_id = util.get_dataset_of_location(self.client, graph_id)
+        dataset_id = utils.get_dataset_of_location(self.client, graph_id)
 
         query = f"""
 
             SELECT id1, id2, SUM(contacts) as weight
             FROM grafos-alcaldia-bogota.{dataset_id}.{graph_id}
-            WHERE date >= {start_date_string} AND date <= {end_date_string}
+            WHERE date >= "{start_date_string}" AND date <= "{end_date_string}"
             GROUP BY id1, id2
 
         """
@@ -259,9 +230,9 @@ class GenericWeeklyAttribute():
 
             SELECT *
             FROM grafos-alcaldia-bogota.transits.daily_transits
-            WHERE location_id = {graph_id} 
-                  AND date >= {start_date_string} 
-                  AND date <= {end_date_string}
+            WHERE location_id = "{graph_id}" 
+                  AND date >= "{start_date_string}"
+                  AND date <= "{end_date_string}"
 
         """
 
@@ -296,9 +267,9 @@ class GenericWeeklyAttribute():
 
             SELECT identifier, SUM(total_transits) as weight
             FROM grafos-alcaldia-bogota.transits.daily_transits
-            WHERE location_id = {graph_id} 
-                  AND date >= {start_date_string} 
-                  AND date <= {end_date_string}
+            WHERE location_id = "{graph_id}"
+                  AND date >= "{start_date_string}" 
+                  AND date <= "{end_date_string}"
 
             GROUP BY identifier
 
