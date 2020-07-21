@@ -39,7 +39,7 @@ class GenericNodeAttribute(GenericWeeklyAttribute):
             raise ValueError(f'Attribute: {self.attribute_name} already exists for {date_string}')
 
         # Goes back 7 days
-        start_date_string = (date_time - timedelta(days = 7)).strftime( utils.date_format)
+        start_date_string = (date_time - timedelta(days = 6)).strftime( utils.date_format)
         end_date_string = date_string
 
         # Computes

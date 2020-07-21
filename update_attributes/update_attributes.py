@@ -71,7 +71,7 @@ def main():
             current_date = start_date
             while current_date <= end_date:
 
-                if g_att.location_id_supported(row.location_id, current_date):
+                if g_att.location_id_supported_on_date(row.location_id, current_date):
                     year, week = utils.get_year_and_week_of_date(current_date)
                     g_att.save_attribute_for_week(row.location_id, year, week)
                     print(f'            {current_date.date()}: OK.')
