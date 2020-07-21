@@ -85,9 +85,9 @@ def get_current_locations(client):
     '''
     
     sql = f"""
-            SELECT location_id, precision, dataset
+            SELECT location_id, name, precision, dataset
             FROM grafos-alcaldia-bogota.geo.locations_geometries
-            GROUP BY location_id, precision, dataset
+            GROUP BY location_id, name, precision, dataset
     """
     
     return( run_simple_query(client, sql))

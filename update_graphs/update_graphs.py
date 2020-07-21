@@ -15,7 +15,7 @@ def main():
     # Starts Client
     client = bigquery.Client(location="US")
     
-    today = pd.to_datetime(datetime.today()) - timedelta(days = 1) # Substracts one day so that it does not compute partial days
+    today = pd.to_datetime(datetime.today())
 
     #DEBUG
     #today = pd.to_datetime("2020-07-10")
@@ -24,7 +24,7 @@ def main():
     df_locations = utils.get_edgelists_coverage(client)
 
     # Filters out
-    selected = df_locations[(df_locations.end_date.isna()) | (df_locations.end_date + timedelta(days = 1) < today)]
+    selected = df_locations[(df_locations.end_date.isna()) | (df_locations.end_date + timedelta(days = 1) < today)] # Substracts one day so that it does not compute partial days
 
 
     start_time = time.time()
@@ -64,7 +64,7 @@ def main():
 
         final_date = today.date()
 
-        while curent_date < final_date:
+        while curent_date < final_date: # Does not include last day
 
             print(f"      Computing {curent_date}")
 
