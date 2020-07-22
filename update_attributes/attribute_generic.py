@@ -54,8 +54,7 @@ class GenericWeeklyAttribute():
         
         This method must be implemented by the subclass. It receives compact nodes and edges and 
         must output the corresponding attribute. This method must return unique identifiers and it's good 
-        practice to include all identifiers. In case its a graph attribute the dataframe must contain only one row and the
-        identifier column is ignored
+        practice to include all identifiers. In case its a graph attribute the identifier column is ignored
 
         params
             nodes (pd.DataFrame) Pandas Dataframe with the nodes of the graph:
@@ -69,6 +68,7 @@ class GenericWeeklyAttribute():
         
         returns
             pd.DataFrame with the following structure
+                - attribute_name (str): The attribute name
                 - identifier (str): Identifier of the node or graph
                 - value (float): The value of the attribute
         '''

@@ -5,16 +5,20 @@ from graph_attribute_generic import GenericGraphAttribute
 import pandas as pd
 import utils
 
-attribute_name = 'graph_size'
+attribute_name = 'number_of_contacts'
 
-class GraphSize(GenericGraphAttribute):
+class GraphNumberOfContacts(GenericGraphAttribute):
     '''
-    Script that computes the size of the graph
+    Script that computes the number of unique contacts (by hour) for the total week
     '''
 
     def __init__(self):
         # Initilizes the super class
         GenericGraphAttribute.__init__(self, attribute_name)
+        
+        # Extracts the locations
+        self.df_locations = utils.get_current_locations(self.client)
+        self.df_locations.index = self.df_locations.location_id        
                 
 
     def compute_attribute(self, nodes, edges):
@@ -38,11 +42,10 @@ class GraphSize(GenericGraphAttribute):
         
         returns
             pd.DataFrame with the following structure
-                - attribute_name (str): The attribute name         
+                - attribute_name (str): The attribute name                
                 - value (float): The value of the attribute
         '''
-        
-
+    
         raise ValueError('Should not enter here')
     
     
@@ -60,39 +63,17 @@ class GraphSize(GenericGraphAttribute):
             pd.DataFrame with the structure of the output of the method compute_attribute   
         '''
                 
+        datset_id = self.df_locations.loc[graph_id, 'dataset']
+        
         query = f"""
-            SELECT COUNT(*) as num_nodes
-            FROM
-            (SELECT identifier
-            FROM grafos-alcaldia-bogota.transits.daily_transits
-            WHERE location_id = "{graph_id}"
-                  AND date >= "{start_date_string}" 
-                  AND date <= "{end_date_string}"
-            GROUP BY identifier )
+            SELECT COUNT(*) as num_contacts
+            FROM grafos-alcaldia-bogota.{datset_id}.{graph_id}
+            WHERE date >= "{start_date_string}" AND date <= "{end_date_string}"
         """
         
         df = utils.run_simple_query(self.client, query)
-        df.rename(columns = {'num_nodes':'value'}, inplace = True)
+        df.rename(columns = {'num_contacts':'value'}, inplace = True)
         df['attribute_name'] = self.attribute_name
 
         return(df)
     
-        
-    
-    def location_id_supported_on_date(self, location_id, current_date):
-        '''
-        Method that determines if the attribute is supported for the location_id (graph)
-        The default implementation is to return True if the current date is equal or larger that the starting_date.
-        Overwrite this method in case the attribute is not supported for a certain location_id (or several) at a particular date
-    
-        NOTE: This method is called several times inside a loop. Make sure you don't acces any expensive resources in the implementation.
-        
-        params
-            - location_id (str)
-            - current_date (pd.datetime): the current datetime
-
-        returns
-            Boolean
-        '''
-                
-        return(current_date >= self.starting_date)

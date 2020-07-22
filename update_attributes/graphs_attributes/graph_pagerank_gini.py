@@ -1,20 +1,45 @@
-# Graph Size attribute
+# Gini Index over the pagerank values of the nodes
 
 
 from graph_attribute_generic import GenericGraphAttribute
 import pandas as pd
+import numpy as np
 import utils
 
-attribute_name = 'graph_size'
+attribute_name = 'pagerank_gini_index'
 
-class GraphSize(GenericGraphAttribute):
+
+# The gini index function
+# Source: from https://github.com/oliviaguest/gini
+
+def gini(array):
+    """Calculate the Gini coefficient of a numpy array."""
+    # Method copied from https://github.com/oliviaguest/gini
+    
+    array = np.array(array).flatten() #all values are treated equally, arrays must be 1d
+    if np.amin(array) < 0:
+        array -= np.amin(array) #values cannot be negative
+    array = array + 0.0000001 #values cannot be 0
+    array = np.sort(array) #values must be sorted
+    index = np.arange(1,array.shape[0]+1) #index per array element
+    n = array.shape[0]#number of array elements
+    return ((np.sum((2 * index - n  - 1) * array)) / (n * np.sum(array))) #Gini coefficient
+
+
+class GraphPageRankGini(GenericGraphAttribute):
     '''
-    Script that computes the size of the graph
+    Script that computes the gini index of the nodes pagerank.
+    
+    This script uses the results from the pagerank node attribute. If nothing is found will return None and writes a warning
     '''
 
     def __init__(self):
         # Initilizes the super class
         GenericGraphAttribute.__init__(self, attribute_name)
+        
+        # Extracts the locations
+        self.df_locations = utils.get_current_locations(self.client)
+        self.df_locations.index = self.df_locations.location_id        
                 
 
     def compute_attribute(self, nodes, edges):
@@ -38,12 +63,12 @@ class GraphSize(GenericGraphAttribute):
         
         returns
             pd.DataFrame with the following structure
-                - attribute_name (str): The attribute name         
+                - attribute_name (str): The attribute nam            
                 - value (float): The value of the attribute
         '''
-        
-
+    
         raise ValueError('Should not enter here')
+    
     
     
     def compute_attribute_for_interval(self, graph_id, start_date_string, end_date_string):
@@ -61,27 +86,31 @@ class GraphSize(GenericGraphAttribute):
         '''
                 
         query = f"""
-            SELECT COUNT(*) as num_nodes
-            FROM
-            (SELECT identifier
-            FROM grafos-alcaldia-bogota.transits.daily_transits
-            WHERE location_id = "{graph_id}"
-                  AND date >= "{start_date_string}" 
-                  AND date <= "{end_date_string}"
-            GROUP BY identifier )
+            SELECT location_id, identifier, attribute_name, attribute_value
+            FROM grafos-alcaldia-bogota.graph_attributes.node_attributes
+            WHERE location_id = {graph_id} AND attribute_name = "pagerank_centrality" AND date = "{end_date_string}"
         """
         
         df = utils.run_simple_query(self.client, query)
-        df.rename(columns = {'num_nodes':'value'}, inplace = True)
-        df['attribute_name'] = self.attribute_name
-
-        return(df)
-    
         
+        if df.shape[0] == 0:
+            raise ValueError(f'No Pagerank Centrality found for {graph_id} on {end_date_string}')
+        
+        
+        # Computes the Gini Index
+        gini_inex = gini(df.attribute_value.values)
+        
+        df_response = pd.DataFrame({'value':gini_inex, 'attribute_name':self.attribute_name })
+
+        
+        return(df_response)
+    
+    
+
     
     def location_id_supported_on_date(self, location_id, current_date):
         '''
-        Method that determines if the attribute is supported for the location_id (graph)
+        Method that determines if the attribute is supported for the location_id (graph) on a specific date
         The default implementation is to return True if the current date is equal or larger that the starting_date.
         Overwrite this method in case the attribute is not supported for a certain location_id (or several) at a particular date
     
@@ -94,5 +123,17 @@ class GraphSize(GenericGraphAttribute):
         returns
             Boolean
         '''
-                
-        return(current_date >= self.starting_date)
+        
+        # Has support for everything except hell week
+        if current_date >= utils.hell_week[0] and current_date <= utils.hell_week[1]:
+            return(False)
+        
+        # For medellin also include week 2
+        if location_id == 'colombia_medellin' and current_date >= utils.hell_week_2[0] and current_date <= utils.hell_week_2[1]:
+            return(False)   
+        
+        # For valle_del_cauca also include week 2
+        if location_id == 'colombia_valle_del_cauca' and current_date >= utils.hell_week_2[0] and current_date <= utils.hell_week_2[1]:
+            return(False)           
+        
+        return(True)    

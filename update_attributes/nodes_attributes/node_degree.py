@@ -1,24 +1,30 @@
-# Graph Size attribute
+# Node Degree attribute
 
 
-from graph_attribute_generic import GenericGraphAttribute
+from node_attribute_generic import GenericNodeAttribute
 import pandas as pd
 import utils
 
-attribute_name = 'graph_size'
+attribute_name = 'node_degree'
 
-class GraphSize(GenericGraphAttribute):
+class NodeDegree(GenericNodeAttribute):
     '''
-    Script that computes the size of the graph
+    Script that computes the degree of the node
     '''
 
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, attribute_name)
+        GenericNodeAttribute.__init__(self, attribute_name)
+                
+        # Extracts the locations
+        self.df_locations = utils.get_current_locations(self.client)
+        self.df_locations.index = self.df_locations.location_id      
                 
 
+    # --- Global Abstract Methods
     def compute_attribute(self, nodes, edges):
         '''
+        # TODO
         Main Method to Implement
         
         This method must be implemented by the subclass. It receives compact nodes and edges and 
@@ -38,12 +44,14 @@ class GraphSize(GenericGraphAttribute):
         
         returns
             pd.DataFrame with the following structure
-                - attribute_name (str): The attribute name         
+                - attribute_name (str): The attribute name                     
+                - identifier (str): Identifier of the node or graph
                 - value (float): The value of the attribute
         '''
-        
 
         raise ValueError('Should not enter here')
+    
+    
     
     
     def compute_attribute_for_interval(self, graph_id, start_date_string, end_date_string):
@@ -59,40 +67,39 @@ class GraphSize(GenericGraphAttribute):
         returns
             pd.DataFrame with the structure of the output of the method compute_attribute   
         '''
-                
+        
+        datset_id = self.df_locations.loc[graph_id, 'dataset']
+        
         query = f"""
-            SELECT COUNT(*) as num_nodes
-            FROM
-            (SELECT identifier
-            FROM grafos-alcaldia-bogota.transits.daily_transits
-            WHERE location_id = "{graph_id}"
-                  AND date >= "{start_date_string}" 
-                  AND date <= "{end_date_string}"
-            GROUP BY identifier )
+                WITH contacts as (
+                  SELECT id1,id2
+                  FROM grafos-alcaldia-bogota.{datset_id}.{graph_id}
+                  WHERE date >= "{start_date_string}" AND date <= "{end_date_string}"
+                  GROUP BY id1, id2),
+
+                  nodes as
+                  (
+                    SELECT identifier
+                    FROM grafos-alcaldia-bogota.transits.daily_transits
+                    WHERE location_id = "{graph_id}"
+                          AND date >= "{start_date_string}" AND date <= "{end_date_string}"
+                   GROUP BY identifier
+                  )
+
+
+                SELECT identifier, (COUNT(*) - 2) as degree
+                FROM 
+                (SELECT identifier FROM nodes LEFT JOIN contacts ON nodes.identifier = contacts.id2
+                UNION ALL
+                SELECT identifier FROM nodes LEFT JOIN contacts ON nodes.identifier = contacts.id2)
+                GROUP BY identifier
+                ORDER BY  degree, identifier
         """
         
-        df = utils.run_simple_query(self.client, query)
-        df.rename(columns = {'num_nodes':'value'}, inplace = True)
+        df = utils.run_simple_query(self.client, query, allow_large_results = True)
+        df.rename(columns = {'degree':'value'}, inplace = True)
         df['attribute_name'] = self.attribute_name
 
         return(df)
     
-        
     
-    def location_id_supported_on_date(self, location_id, current_date):
-        '''
-        Method that determines if the attribute is supported for the location_id (graph)
-        The default implementation is to return True if the current date is equal or larger that the starting_date.
-        Overwrite this method in case the attribute is not supported for a certain location_id (or several) at a particular date
-    
-        NOTE: This method is called several times inside a loop. Make sure you don't acces any expensive resources in the implementation.
-        
-        params
-            - location_id (str)
-            - current_date (pd.datetime): the current datetime
-
-        returns
-            Boolean
-        '''
-                
-        return(current_date >= self.starting_date)

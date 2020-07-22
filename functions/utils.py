@@ -22,6 +22,9 @@ date_format = '%Y-%m-%d'
 # Global temp dataset
 temp_data_set_id = "download_temp"
 
+# Hell Week (La semana donde se fue todo a la mierda con los datos)
+hell_week = [pd.to_datetime('2020-03-02 00:00:00'), pd.to_datetime('2020-03-08 00:00:00')]
+hell_week_2 = [pd.to_datetime('2020-03-09 00:00:00'), pd.to_datetime('2020-03-15 00:00:00')]
 
 
 graphs_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.graph_attributes'
@@ -36,6 +39,7 @@ def get_year_and_week_of_date(d):
     
     will raise an error if the given date is not a sunday
     '''
+    d = pd.to_datetime(d)
     
     if d.dayofweek != 6:
         raise ValueError('Extraction of week is only supported for sundays. But received: {}'.format(d))
@@ -64,12 +68,12 @@ def get_date_of_week(year, week):
     
     return(r)
 
-def run_simple_query(client, query):
+def run_simple_query(client, query, allow_large_results=False):
     '''
     Method that runs a simple query
     '''
     
-    job_config = bigquery.QueryJobConfig()
+    job_config = bigquery.QueryJobConfig(allow_large_results = allow_large_results)
     query_job = client.query(query, job_config=job_config) 
 
     # Return the results as a pandas DataFrame
@@ -207,7 +211,7 @@ def get_tables_from_dataset(client, dataset_id):
         return None
 
 
-def get_max_dates_for_graph_attribute(client, attribute_name):
+def get_max_dates_for_graph_attributes(client):
     '''
     Method that gets the max dates of a given attribute
     '''
@@ -215,14 +219,13 @@ def get_max_dates_for_graph_attribute(client, attribute_name):
     sql = f"""
         SELECT attribute_name, location_id, MAX(date) as max_date
         FROM grafos-alcaldia-bogota.graph_attributes.graph_attributes
-        WHERE attribute_name = "{attribute_name}"
         GROUP BY attribute_name, location_id
     """
 
     return(run_simple_query(client, sql))
 
 
-def get_max_dates_for_node_attribute(client, attribute_name):
+def get_max_dates_for_node_attributes(client):
     '''
     Method that gets the max dates of a given attribute
     '''
@@ -230,7 +233,6 @@ def get_max_dates_for_node_attribute(client, attribute_name):
     sql = f"""
         SELECT attribute_name, location_id, MAX(date) as max_date
         FROM grafos-alcaldia-bogota.graph_attributes.node_attributes
-        WHERE attribute_name = "{attribute_name}"
         GROUP BY attribute_name, location_id
     """
 

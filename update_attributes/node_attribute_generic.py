@@ -3,6 +3,7 @@
 from attribute_generic import GenericWeeklyAttribute
 import utils
 from datetime import datetime, timedelta
+import pandas as pd
 
 class GenericNodeAttribute(GenericWeeklyAttribute):
     '''
@@ -11,7 +12,7 @@ class GenericNodeAttribute(GenericWeeklyAttribute):
 
     def __init__(self, attribute_name):
         # Initilizes the super class
-        GenericWeeklyAttribute.__init__(self, attribute_name):
+        GenericWeeklyAttribute.__init__(self, attribute_name)
 
 
 
@@ -31,17 +32,17 @@ class GenericNodeAttribute(GenericWeeklyAttribute):
             - Exception if the the result does not contain the defined  strucure. See GenericWeeklyAttribute.compute_attribute
         '''
 
-        date_time = util.get_date_of_week(year, week)
+        date_time = utils.get_date_of_week(year, week)
         date_string = date_time.strftime( utils.date_format)
 
-        if util.node_attribute_exists(self.client, graph_id, self.attribute_name, date_string):
+        if utils.node_attribute_exists(self.client, graph_id, self.attribute_name, date_string):
 
             raise ValueError(f'Attribute: {self.attribute_name} already exists for {date_string}')
 
         # Goes back 7 days
         start_date_string = (date_time - timedelta(days = 6)).strftime( utils.date_format)
         end_date_string = date_string
-
+        
         # Computes
         df_result = self.compute_attribute_for_interval(graph_id, start_date_string, end_date_string)
 
@@ -50,14 +51,23 @@ class GenericNodeAttribute(GenericWeeklyAttribute):
 
         if 'identifier' not in df_result.columns:
             raise ValueError(f'The column "identifier" was not found in the columns {df_result.columns}')
+                    
+        if 'attribute_name' not in df_result.columns:
+            raise ValueError(f'The column "attribute_name" was not found in the columns {df_result.columns}')            
 
-        df_results.rename(columns {'value':'attribute_value'}, inplace = True)
+        df_result.rename(columns = {'value': 'attribute_value'}, inplace = True)
 
         # Adds the columns
         df_result['location_id'] = graph_id
         df_result['date'] = date_string
-        df_result['attribute_name'] = self.attribute_name
 
         df_result = df_result[['identifier','location_id','date','attribute_name','attribute_value']]
+        
+        # Sets the types
+        df_result.identifier = df_result.identifier.astype(str)
+        df_result.location_id = df_result.location_id.astype(str)
+        df_result.date = df_result.date.apply(lambda d: pd.to_datetime(d))
+        df_result.attribute_name = df_result.attribute_name.astype(str)
+        df_result.attribute_value = df_result.attribute_value.astype(float)
 
-        util.insert_node_attributes(seld.client, df_result)
+        utils.insert_node_attributes(self.client, df_result)

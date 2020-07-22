@@ -52,13 +52,16 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
 
         if 'value' not in df_result.columns:
             raise ValueError(f'The column "value" was not found in the columns {df_result.columns}')
-
+        
+        if 'attribute_name' not in df_result.columns:
+            raise ValueError(f'The column "attribute_name" was not found in the columns {df_result.columns}')
+            
+            
         df_result.rename(columns = {'value':'attribute_value'}, inplace = True)
         # Adds the columns
         df_result['location_id'] = graph_id
         df_result['date'] = date_string
-        df_result['attribute_name'] = self.attribute_name
-
+    
         df_result = df_result[['location_id','date','attribute_name','attribute_value']]
         
         # Sets the types
