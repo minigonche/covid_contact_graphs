@@ -88,7 +88,7 @@ class GraphPageRankGini(GenericGraphAttribute):
         query = f"""
             SELECT location_id, identifier, attribute_name, attribute_value
             FROM grafos-alcaldia-bogota.graph_attributes.node_attributes
-            WHERE location_id = {graph_id} AND attribute_name = "pagerank_centrality" AND date = "{end_date_string}"
+            WHERE location_id = "{graph_id}" AND attribute_name = "pagerank_centrality" AND date = "{end_date_string}"
         """
         
         df = utils.run_simple_query(self.client, query)
@@ -100,7 +100,7 @@ class GraphPageRankGini(GenericGraphAttribute):
         # Computes the Gini Index
         gini_inex = gini(df.attribute_value.values)
         
-        df_response = pd.DataFrame({'value':gini_inex, 'attribute_name':self.attribute_name })
+        df_response = pd.DataFrame({'value':[gini_inex], 'attribute_name':[self.attribute_name] })
 
         
         return(df_response)

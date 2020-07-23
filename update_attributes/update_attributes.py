@@ -130,7 +130,7 @@ def main():
             if pd.isna(row.max_date):
                 start_date = g_att.starting_date
             else:
-                start_date = row.max_date + timedelta(days = 7) # Next sunday
+                start_date = pd.to_datetime(row.max_date) + timedelta(days = 7) # Next sunday
 
             print(f'         Calculating for {row.location_id} ({i} of {selected.shape[0]}), from: {start_date.date()} to {end_date.date()}')
 

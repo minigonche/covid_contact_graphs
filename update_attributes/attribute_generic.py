@@ -101,7 +101,7 @@ class GenericWeeklyAttribute():
     def location_id_supported_on_date(self, location_id, current_date):
         '''
         Method that determines if the attribute is supported for the location_id (graph) on a specific date
-        The default implementation is to return True if the current date is equal or larger that the starting_date.
+        The default implementation is to return True if the current date is equal or larger that the starting_date and is not inside hell week
         Overwrite this method in case the attribute is not supported for a certain location_id (or several) at a particular date
     
         NOTE: This method is called several times inside a loop. Make sure you don't acces any expensive resources in the implementation.
@@ -114,6 +114,10 @@ class GenericWeeklyAttribute():
             Boolean
         '''
 
+        # Has support for everything except hell week
+        if current_date >= utils.hell_week[0] and current_date <= utils.hell_week[1]:
+            return(False)
+        
         return(current_date >= self.starting_date)
 
 
