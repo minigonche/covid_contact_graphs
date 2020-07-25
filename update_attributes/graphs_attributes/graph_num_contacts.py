@@ -14,11 +14,7 @@ class GraphNumberOfContacts(GenericGraphAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, attribute_name)
-        
-        # Extracts the locations
-        self.df_locations = utils.get_current_locations(self.client)
-        self.df_locations.index = self.df_locations.location_id        
+        GenericGraphAttribute.__init__(self, attribute_name)   
                 
 
     def compute_attribute(self, nodes, edges):

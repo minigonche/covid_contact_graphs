@@ -15,11 +15,7 @@ class NodeDegree(GenericNodeAttribute):
     def __init__(self):
         # Initilizes the super class
         GenericNodeAttribute.__init__(self, attribute_name)
-                
-        # Extracts the locations
-        self.df_locations = utils.get_current_locations(self.client)
-        self.df_locations.index = self.df_locations.location_id      
-                
+
 
     # --- Global Abstract Methods
     def compute_attribute(self, nodes, edges):
@@ -80,7 +76,7 @@ class NodeDegree(GenericNodeAttribute):
                   nodes as
                   (
                     SELECT identifier
-                    FROM grafos-alcaldia-bogota.transits.daily_transits
+                    FROM grafos-alcaldia-bogota.transits.hourly_transits
                     WHERE location_id = "{graph_id}"
                           AND date >= "{start_date_string}" AND date <= "{end_date_string}"
                    GROUP BY identifier

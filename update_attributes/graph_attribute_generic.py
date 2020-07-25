@@ -47,9 +47,6 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
         # Computes
         df_result = self.compute_attribute_for_interval(graph_id, start_date_string, end_date_string)
 
-        if df_result.shape[0] > 1:
-            raise ValueError(f'Graph attributes results can only have one row. Result has: {df_result.shape[0]}')
-
         if 'value' not in df_result.columns:
             raise ValueError(f'The column "value" was not found in the columns {df_result.columns}')
         
@@ -61,11 +58,13 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
         # Adds the columns
         df_result['location_id'] = graph_id
         df_result['date'] = date_string
+        df_result['type'] = self.df_locations.loc[graph_id, 'type']
     
-        df_result = df_result[['location_id','date','attribute_name','attribute_value']]
+        df_result = df_result[['location_id','date','attribute_name','attribute_value','type']]
         
         # Sets the types
         df_result.location_id = df_result.location_id.astype(str)
+        df_result['type'] = df_result['type'].astype(str)
         df_result.date = df_result.date.apply(lambda d: pd.to_datetime(d))
         df_result.attribute_name = df_result.attribute_name.astype(str)
         df_result.attribute_value = df_result.attribute_value.astype(float)

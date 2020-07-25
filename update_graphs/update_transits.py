@@ -15,6 +15,9 @@ def main():
     # Gets the coverage
     client = bigquery.Client(location="US")
     df_transits = utils.get_transits_coverage(client)
+    
+    # Updates Bogota
+    utils.update_bogota_sample(client)
 
     today = pd.to_datetime(datetime.today())
 

@@ -1,4 +1,4 @@
-# Gini Index over the pagerank values of the nodes
+# Gini Index over the betweenness values of the nodes
 
 
 from graph_attribute_generic import GenericGraphAttribute
@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import utils
 
-attribute_name = 'pagerank_gini_index'
+attribute_name = 'betweenness_gini_index'
 
 
 # The gini index function
@@ -26,7 +26,7 @@ def gini(array):
     return ((np.sum((2 * index - n  - 1) * array)) / (n * np.sum(array))) #Gini coefficient
 
 
-class GraphPageRankGini(GenericGraphAttribute):
+class GraphBetweennessGini(GenericGraphAttribute):
     '''
     Script that computes the gini index of the nodes pagerank.
     
@@ -84,13 +84,13 @@ class GraphPageRankGini(GenericGraphAttribute):
         query = f"""
             SELECT location_id, identifier, attribute_name, attribute_value
             FROM grafos-alcaldia-bogota.graph_attributes.node_attributes
-            WHERE location_id = "{graph_id}" AND attribute_name = "pagerank_centrality" AND date = "{end_date_string}"
+            WHERE location_id = "{graph_id}" AND attribute_name = "betweenness_centrality" AND date = "{end_date_string}"
         """
         
         df = utils.run_simple_query(self.client, query)
         
         if df.shape[0] == 0:
-            raise ValueError(f'No Pagerank Centrality found for {graph_id} on {end_date_string}')
+            raise ValueError(f'No Betweenness Centrality found for {graph_id} on {end_date_string}')
         
         
         # Computes the Gini Index

@@ -60,12 +60,14 @@ class GenericNodeAttribute(GenericWeeklyAttribute):
         # Adds the columns
         df_result['location_id'] = graph_id
         df_result['date'] = date_string
+        df_result['type'] = self.df_locations.loc[graph_id, 'type']        
 
-        df_result = df_result[['identifier','location_id','date','attribute_name','attribute_value']]
+        df_result = df_result[['identifier','location_id','date','attribute_name','attribute_value','type']]
         
         # Sets the types
         df_result.identifier = df_result.identifier.astype(str)
         df_result.location_id = df_result.location_id.astype(str)
+        df_result['type'] = df_result['type'].astype(str)
         df_result.date = df_result.date.apply(lambda d: pd.to_datetime(d))
         df_result.attribute_name = df_result.attribute_name.astype(str)
         df_result.attribute_value = df_result.attribute_value.astype(float)

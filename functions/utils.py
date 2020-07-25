@@ -89,9 +89,9 @@ def get_current_locations(client):
     '''
     
     sql = f"""
-            SELECT location_id, name, precision, dataset
+            SELECT location_id, name, precision, dataset, type
             FROM grafos-alcaldia-bogota.geo.locations_geometries
-            GROUP BY location_id, name, precision, dataset
+            GROUP BY location_id, name, precision, dataset, type
     """
     
     return( run_simple_query(client, sql))
@@ -107,6 +107,38 @@ def get_dataset_of_location(client, location_id ):
 
     return(df.loc[location_id, 'dataset'])
 
+
+
+def update_bogota_sample(client):
+    '''
+    Method that updates the bogota (to save money with so many UPZ and Localities)
+    '''
+    
+    table_id = "grafos-alcaldia-bogota.unacast_samples.unacast_bogota"
+    
+    # Extracts max date
+    sql = f"SELECT MAX(date) as max_date FROM {table_id}"
+    
+    df_temp = run_simple_query(client, sql)
+    max_date = df_temp.max_date.values[0]
+    
+    
+    sql = f"""
+        SELECT identifier, timestamp, date, device_lat, device_lon, province_short
+        FROM {table_id}
+        WHERE (province_short = 'CO.33' OR province_short = 'CO.34')
+             AND date > "{max_date}"
+    
+    """
+    
+    job_config = bigquery.QueryJobConfig(destination = "grafos-alcaldia-bogota.unacast_samples.unacast_bogota", 
+                                         write_disposition = 'WRITE_APPEND')
+    
+    
+    query_job = client.query(sql, job_config=job_config)  
+    query_job.result()
+    
+    return(query_job)
 
 
 def node_attribute_exists(client, location_id, attribute_name, date):
@@ -447,25 +479,47 @@ def compute_transits(client, location_id, start_date, end_date, ident = '   '):
     
     print(ident + f'Adding transtits for: {location_id}. Between: {start_date} and {end_date}')
     
-    query = f"""
-    SELECT
-      "{location_id}" as location_id,
-      identifier,
-      date,
-      COUNT(*) total_transits
-    FROM
-      `servinf-unacast-prod.unacasttest.unacast_positions_partitioned` AS unacast
-    WHERE
-      date >= "{start_date}" AND date < "{end_date}"
-      AND ST_DWithin(ST_GeogPoint(unacast.device_lon,
-          unacast.device_lat),
-        (SELECT geometry FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"),
-        (SELECT precision FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"))
-    GROUP BY  date, identifier
-    """
+    if "bogota" in location_id:
+        
+        print('Inside Bogota')
+        query = f"""
+        SELECT
+          "{location_id}" as location_id,
+          identifier,
+          date,
+          EXTRACT(HOUR FROM unacast.timestamp) AS hour,
+          COUNT(*) total_transits
+        FROM
+          grafos-alcaldia-bogota.unacast_samples.unacast_bogota AS unacast
+        WHERE
+          date >= "{start_date}" AND date < "{end_date}"
+          AND ST_DWithin(ST_GeogPoint(unacast.device_lon,
+              unacast.device_lat),
+            (SELECT geometry FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"),
+            (SELECT precision FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"))
+        GROUP BY  date, EXTRACT(HOUR FROM unacast.timestamp), identifier
+        """        
+    else:
+        query = f"""
+        SELECT
+          "{location_id}" as location_id,
+          identifier,
+          date,
+          EXTRACT(HOUR FROM unacast.timestamp) AS hour,
+          COUNT(*) total_transits
+        FROM
+          `servinf-unacast-prod.unacasttest.unacast_positions_partitioned` AS unacast
+        WHERE
+          date >= "{start_date}" AND date < "{end_date}"
+          AND ST_DWithin(ST_GeogPoint(unacast.device_lon,
+              unacast.device_lat),
+            (SELECT geometry FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"),
+            (SELECT precision FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"))
+        GROUP BY  date, EXTRACT(HOUR FROM unacast.timestamp), identifier
+        """
     
     
-    job_config= bigquery.QueryJobConfig(destination= "grafos-alcaldia-bogota.transits.daily_transits",
+    job_config= bigquery.QueryJobConfig(destination= "grafos-alcaldia-bogota.transits.hourly_transits",
                                         write_disposition = 'WRITE_APPEND')
     
     query_job = client.query(query, job_config= job_config) 
@@ -488,7 +542,7 @@ def get_transits_coverage(client):
         SELECT t2.location_id, t1.min_date, t1.max_date, t1.total_transits
         FROM
         (SELECT location_id, MIN(date) as min_date, MAX(date) as max_date, COUNT(*) as total_transits
-        FROM `grafos-alcaldia-bogota.transits.daily_transits` 
+        FROM `grafos-alcaldia-bogota.transits.hourly_transits` 
         GROUP BY location_id) as t1
         RIGHT JOIN 
         (SELECT location_id
@@ -729,8 +783,9 @@ def add_edglists_to_graph(client, dataset_id, graph_name, date):
     
         WITH tr as (
           SELECT DISTINCT identifier
-          FROM grafos-alcaldia-bogota.transits.daily_transits
+          FROM grafos-alcaldia-bogota.transits.hourly_transits
           WHERE date = "{date}" AND location_id = "{graph_name}"
+          GROUP BY identifier
         ), 
         contacts as (
           SELECT con.* 

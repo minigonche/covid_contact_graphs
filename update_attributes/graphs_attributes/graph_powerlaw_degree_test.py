@@ -5,8 +5,12 @@ from graph_attribute_generic import GenericGraphAttribute
 import pandas as pd
 import numpy as np
 import utils
+from scipy.stats import powerlaw
+from scipy.stats import expon
+from scipy.stats import lognorm
+from scipy.stats import kstest
 
-attribute_name = 'powerlaw_degree_p_value'
+attribute_name = 'powerlaw_degree_is_dist'
 
 # This Class has multiple attrbiute names
 
@@ -21,11 +25,7 @@ class GraphPowerLawTest(GenericGraphAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, attribute_name)
-        
-        # Extracts the locations
-        self.df_locations = utils.get_current_locations(self.client)
-        self.df_locations.index = self.df_locations.location_id        
+        GenericGraphAttribute.__init__(self, attribute_name)  
                 
 
     def compute_attribute(self, nodes, edges):
@@ -74,9 +74,10 @@ class GraphPowerLawTest(GenericGraphAttribute):
         query = f"""
             SELECT location_id, identifier, attribute_name, attribute_value
             FROM grafos-alcaldia-bogota.graph_attributes.node_attributes
-            WHERE location_id = {graph_id} AND attribute_name = "node_degree" AND date = "{end_date_string}"
+            WHERE location_id = "{graph_id}" AND attribute_name = "node_degree" AND date = "{end_date_string}"
         """
         
+        eps = 1e-10
         df = utils.run_simple_query(self.client, query)
         
         if df.shape[0] == 0:
@@ -85,8 +86,27 @@ class GraphPowerLawTest(GenericGraphAttribute):
         
         # Excecutes the power law test
         
-        df_response = pd.DataFrame({'value':gini_inex, 'attribute_name':self.attribute_name })
-
+        # Extracts dsitribution
+        distribution = df['attribute_value'].values
+                
+        # Powerlaw
+        params = powerlaw.fit(distribution)
+        # Extracts alfa
+        alpha = params[0]
+        ks, p = kstest(distribution,"powerlaw",args=params, N = df.shape[0])
+        
+        # Exponential
+        params = expon.fit(distribution)
+        ks_e, p_e = kstest(distribution,"expon",args=params, N = df.shape[0])
+        
+        # LogNormal
+        params = lognorm.fit(distribution)
+        ks_l, p_l = kstest(distribution,"lognorm",args=params, N = df.shape[0])   
+        
+        is_power = int((ks <  ks_e) and (ks < ks_l))
+        
+        df_response = pd.DataFrame({'value':[is_power,ks,p, alpha], 'attribute_name': ['powerlaw_degree_is_dist', 'powerlaw_degree_ks_statistic', 'powerlaw_degree_p_value', 'powerlaw_degree_alpha']})
+        
         
         return(df_response)
     

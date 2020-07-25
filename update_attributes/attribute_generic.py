@@ -41,7 +41,12 @@ class GenericWeeklyAttribute():
         # Adjusts starting date so that is sunday (or else it will not be consistent with the database)
         self.starting_date = starting_date
         while self.starting_date.dayofweek != 6:
-            self.starting_date = self.starting_date + timedelta(days = 1)            
+            self.starting_date = self.starting_date + timedelta(days = 1)
+            
+            
+        # Extracts the locations
+        self.df_locations = utils.get_current_locations(self.client)
+        self.df_locations.index = self.df_locations.location_id     
 
 
 
@@ -253,7 +258,7 @@ class GenericWeeklyAttribute():
         query = f"""
 
             SELECT *
-            FROM grafos-alcaldia-bogota.transits.daily_transits
+            FROM grafos-alcaldia-bogota.transits.hourly_transits
             WHERE location_id = "{graph_id}" 
                   AND date >= "{start_date_string}"
                   AND date <= "{end_date_string}"
@@ -290,7 +295,7 @@ class GenericWeeklyAttribute():
         query = f"""
 
             SELECT identifier, SUM(total_transits) as weight
-            FROM grafos-alcaldia-bogota.transits.daily_transits
+            FROM grafos-alcaldia-bogota.transits.hourly_transits
             WHERE location_id = "{graph_id}"
                   AND date >= "{start_date_string}" 
                   AND date <= "{end_date_string}"
