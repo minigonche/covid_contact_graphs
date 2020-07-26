@@ -51,12 +51,12 @@ class NodeEigenvector(GenericNodeAttribute):
         
         # Adds the values
         G.add_vertices(nodes.identifier.values)
-        
+                   
         if edges.shape[0] > 0:
             G.add_edges(edges.apply(lambda df: (df.id1, df.id2), axis = 1))
         
         # Exctracs the eigenvector
-        eigenvector = G.evcent()
+        eigenvector = G.evcent(weights = edges.weight.values, directed = False)
         
         # Adds it to the nodes
         nodes['value'] = eigenvector

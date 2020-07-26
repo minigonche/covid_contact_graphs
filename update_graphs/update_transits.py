@@ -16,10 +16,10 @@ def main():
     client = bigquery.Client(location="US")
     df_transits = utils.get_transits_coverage(client)
     
-    # Updates Bogota
-    utils.update_bogota_sample(client)
-
     today = pd.to_datetime(datetime.today())
+    
+    # Updates Bogota
+    utils.update_bogota_sample(client, today.strftime(utils.date_format))
 
     # Filters out
     selected = df_transits[(df_transits.max_date.isna()) | (df_transits.max_date + timedelta(days = 1) < today)]

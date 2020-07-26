@@ -88,10 +88,15 @@ class GraphEigenvectorGini(GenericGraphAttribute):
         """
         
         df = utils.run_simple_query(self.client, query)
-        
+
         if df.shape[0] == 0:
-            raise ValueError(f'No Betweenness Centrality found for {graph_id} on {end_date_string}')
-        
+            message = f'No Betweenness Centrality found for {graph_id} on {end_date_string}'
+            if graph_id == 'colombia_university_rosario_campus_norte':
+                print('             ' + message)
+                return(pd.DataFrame({'value':None, 'attribute_name':[self.attribute_name] }))
+            else:                    
+                raise ValueError(message)
+                
         
         # Computes the Gini Index
         gini_inex = gini(df.attribute_value.values)

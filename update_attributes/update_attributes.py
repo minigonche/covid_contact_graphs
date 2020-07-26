@@ -4,6 +4,8 @@ import utils
 from google.cloud import bigquery
 from datetime import datetime, timedelta
 import pandas as pd
+import time
+import numpy as np
 
 
 # imports all the attributes
@@ -32,8 +34,8 @@ import graphs_attributes.graph_powerlaw_degree_test as graph_powerlaw_degree_tes
 all_node_attributes = []
 all_node_attributes.append(node_degree.NodeDegree())
 all_node_attributes.append(node_pagerank.NodePageRank())
-all_node_attributes.append(node_betweenness.NodeBetweenness())
 all_node_attributes.append(node_eigenvector.NodeEigenvector())
+#all_node_attributes.append(node_betweenness.NodeBetweenness())
 
 
 
@@ -44,7 +46,7 @@ all_graph_attributes = []
 all_graph_attributes.append(graph_size.GraphSize())
 all_graph_attributes.append(graph_num_contacts.GraphNumberOfContacts())
 all_graph_attributes.append(graph_pagerank_gini.GraphPageRankGini())
-all_graph_attributes.append(graph_betweenness_gini.GraphBetweennessGini())
+#all_graph_attributes.append(graph_betweenness_gini.GraphBetweennessGini())
 all_graph_attributes.append(graph_eigenvector_gini.GraphEigenvectorGini())
 all_graph_attributes.append(graph_powerlaw_degree_test.GraphPowerLawTest())
 
@@ -68,6 +70,8 @@ def main():
 
     print(f'Computing {len(all_node_attributes)} Node Attributes')
     # Excecutes all the Node attributes
+    
+    start_time = time.time()
     for n_att in all_node_attributes:
         
         print(f'   Coputing { n_att.attribute_name}.')
@@ -107,6 +111,8 @@ def main():
                     print(f'            {current_date}: Skipped by implementation.')
 
                 current_date = current_date + timedelta(days = 7)
+            
+            print(f'   Elapsed Time: {np.round((time.time() - start_time)/3600,3)} hours')
 
 
     print()
@@ -158,7 +164,9 @@ def main():
                     print(f'            {current_date.date()}: Skipped by implementation.')
 
                 current_date = current_date + timedelta(days = 7)
-
+            
+            print(f'   Elapsed Time: {np.round((time.time() - start_time)/3600,3)} hours')
+            
 
     print()
     print('Completed Graphs Attribute')

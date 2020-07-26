@@ -30,6 +30,8 @@ hell_week_2 = [pd.to_datetime('2020-03-09 00:00:00'), pd.to_datetime('2020-03-15
 graphs_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.graph_attributes'
 nodes_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.node_attributes'
 
+bogota_codes = ['CO.34','CO.33']
+
 def get_year_and_week_of_date(d):
     '''
     Returns the year and week of the year of the given date.
@@ -109,7 +111,7 @@ def get_dataset_of_location(client, location_id ):
 
 
 
-def update_bogota_sample(client):
+def update_bogota_sample(client, todays_date):
     '''
     Method that updates the bogota (to save money with so many UPZ and Localities)
     '''
@@ -127,7 +129,7 @@ def update_bogota_sample(client):
         SELECT identifier, timestamp, date, device_lat, device_lon, province_short
         FROM {table_id}
         WHERE (province_short = 'CO.33' OR province_short = 'CO.34')
-             AND date > "{max_date}"
+             AND date > "{max_date}" AND date < "{todays_date}"
     
     """
     
@@ -479,9 +481,16 @@ def compute_transits(client, location_id, start_date, end_date, ident = '   '):
     
     print(ident + f'Adding transtits for: {location_id}. Between: {start_date} and {end_date}')
     
-    if "bogota" in location_id:
+    
+    # Checks if the location is in bogota
+    sql = f'SELECT code_depto FROM grafos-alcaldia-bogota.geo.locations_geo_codes WHERE location_id = "{location_id}"'
+    
+    df_codes =  run_simple_query(client, sql)
+    
+    
+    if df_codes.code_depto.apply(lambda c: c not in bogota_codes).sum() == 0:
         
-        print('Inside Bogota')
+        print('      Inside Bogota')
         query = f"""
         SELECT
           "{location_id}" as location_id,
@@ -733,7 +742,7 @@ def get_max_date_for_graph_table(client, dataset, graph_name, min_date = None):
     '''
     job_config = bigquery.QueryJobConfig()
      
-    if min_date is None:
+    if pd.isna(min_date):
         sql = f"""
          SELECT MAX(date) as max_date
             FROM grafos-alcaldia-bogota.{dataset}.{graph_name}
@@ -744,12 +753,19 @@ def get_max_date_for_graph_table(client, dataset, graph_name, min_date = None):
             FROM grafos-alcaldia-bogota.{dataset}.{graph_name}
             WHERE date >= "{min_date}"
         """
+        
     query_job = client.query(sql, job_config=job_config) 
 
     # Return the results as a pandas DataFrame
     df = query_job.to_dataframe()
     
-    return(df.max_date.iloc[0])
+    max_date = df.max_date.iloc[0]
+    
+    if pd.isna(max_date) and not pd.isna(min_date):
+        print(f'Error in: {graph_name}. No max date found after: {min_date}. Will compute from start.')
+        return(get_max_date_for_graph_table(client, dataset, graph_name))
+    
+    return(max_date)
 
 def get_min_date_for_graph_table(client, dataset, graph_name):
     '''

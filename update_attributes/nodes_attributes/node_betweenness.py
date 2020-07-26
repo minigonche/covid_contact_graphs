@@ -56,7 +56,7 @@ class NodeBetweenness(GenericNodeAttribute):
             G.add_edges(edges.apply(lambda df: (df.id1, df.id2), axis = 1))
         
         # Exctracs the betweenness
-        betweenness = G.betweenness()
+        betweenness = G.betweenness(weights =  edges.weight.values, directed = False)
         
         # Adds it to the nodes
         nodes['value'] = betweenness

@@ -223,13 +223,13 @@ class GenericWeeklyAttribute():
 
         query = f"""
 
-            SELECT id1, id2, SUM(contacts) as weight
+            SELECT id1, id2, COUNT(*) as weight, SUM(contacts) as total_contacts
             FROM grafos-alcaldia-bogota.{dataset_id}.{graph_id}
             WHERE date >= "{start_date_string}" AND date <= "{end_date_string}"
             GROUP BY id1, id2
 
         """
-
+        
         job_config = bigquery.QueryJobConfig(allow_large_results=True)
         query_job = self.client.query(query, job_config=job_config) 
 

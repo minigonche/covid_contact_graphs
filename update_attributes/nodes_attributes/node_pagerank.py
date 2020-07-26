@@ -51,12 +51,15 @@ class NodePageRank(GenericNodeAttribute):
         
         # Adds the values
         G.add_vertices(nodes.identifier.values)
+
+        # Adds weights
+        G.es['weight'] = edges.weight.values
         
         if edges.shape[0] > 0:
             G.add_edges(edges.apply(lambda df: (df.id1, df.id2), axis = 1))
         
         # Exctracs the pagerank
-        page_rank = G.pagerank()
+        page_rank = G.pagerank(weights = 'weight',  directed = False)
         
         # Adds it to the nodes
         nodes['value'] = page_rank
