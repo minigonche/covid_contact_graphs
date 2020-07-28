@@ -36,7 +36,7 @@ class NodeEigenvector(GenericNodeAttribute):
             edges (pd.DataFrame) Pandas dataFrame with the grouped edglist (undirected)
                 - id1 (str) 
                 - id2 (str)
-                - weight (num) Weight od the edge (see get_compact_edgelist)      
+                - weight (num) Weight of the edge (see get_compact_edgelist)      
 
         
         returns

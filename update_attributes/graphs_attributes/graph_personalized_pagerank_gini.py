@@ -1,4 +1,4 @@
-# Gini Index over the betweenness values of the nodes
+# Gini Index over the personalized pagerank values of the nodes
 
 
 from graph_attribute_generic import GenericGraphAttribute
@@ -6,12 +6,13 @@ import pandas as pd
 import numpy as np
 import utils
 
-attribute_name = 'betweenness_gini_index'
+attribute_name = 'personalized_pagerank_gini_index'
 
 
-class GraphBetweennessGini(GenericGraphAttribute):
+
+class GraphPersonalizedPageRankGini(GenericGraphAttribute):
     '''
-    Script that computes the gini index of the nodes pagerank.
+    Script that computes the gini index of the nodes personalized pagerank.
     
     This script uses the results from the pagerank node attribute. If nothing is found will return None and writes a warning
     '''
@@ -20,6 +21,9 @@ class GraphBetweennessGini(GenericGraphAttribute):
         # Initilizes the super class
         GenericGraphAttribute.__init__(self, attribute_name)
                         
+        self.df_codes =  utils.get_geo_codes(self.client, location_id = None)
+        self.df_codes.index = self.df_codes.location_id
+                
 
     def compute_attribute(self, nodes, edges):
         '''
@@ -67,13 +71,18 @@ class GraphBetweennessGini(GenericGraphAttribute):
         query = f"""
             SELECT location_id, identifier, attribute_name, attribute_value
             FROM grafos-alcaldia-bogota.graph_attributes.node_attributes
-            WHERE location_id = "{graph_id}" AND attribute_name = "betweenness_centrality" AND date = "{end_date_string}"
+            WHERE location_id = "{graph_id}" AND attribute_name = "personalized_pagerank_centrality" AND date = "{end_date_string}"
         """
         
         df = utils.run_simple_query(self.client, query)
         
         if df.shape[0] == 0:
-            raise ValueError(f'No Betweenness Centrality found for {graph_id} on {end_date_string}')
+            message = f'No Personalized Pagerank Centrality found for {graph_id} on {end_date_string}'
+            if graph_id == 'colombia_university_rosario_campus_norte':
+                print('             ' + message)
+                return(pd.DataFrame({'value':None, 'attribute_name':[self.attribute_name] }))
+            else:                    
+                raise ValueError(message)
         
         
         # Computes the Gini Index
@@ -86,6 +95,36 @@ class GraphBetweennessGini(GenericGraphAttribute):
     
     
 
+    
+
+    
+
+    def location_id_supported(self, location_id):
+        '''
+        Method that determines if the attribute is supported for the location_id (graph).
+        The default implementation is to return True.
+
+        Overwrite this method in case the attribute is not on any date for a given location.
+    
+        NOTE: This method is called several times inside a loop. Make sure you don't acces any expensive resources in the implementation.
+        
+        params
+            - location_id (str)
+            - current_date (pd.datetime): the current datetime
+
+        returns
+            Boolean
+        '''
+        
+        if location_id == 'colombia_university_rosario_campus_norte':
+            return(False)
+        
+        in_bogota = self.df_codes.loc[[location_id]].code_depto.apply(lambda c: c not in utils.bogota_codes).sum() == 0
+        
+        return(in_bogota)
+    
+    
+    
     
     def location_id_supported_on_date(self, location_id, current_date):
         '''
@@ -106,13 +145,6 @@ class GraphBetweennessGini(GenericGraphAttribute):
         # Has support for everything except hell week
         if current_date >= utils.hell_week[0] and current_date <= utils.hell_week[1]:
             return(False)
-        
-        # For medellin also include week 2
-        if location_id == 'colombia_medellin' and current_date >= utils.hell_week_2[0] and current_date <= utils.hell_week_2[1]:
-            return(False)   
-        
-        # For valle_del_cauca also include week 2
-        if location_id == 'colombia_valle_del_cauca' and current_date >= utils.hell_week_2[0] and current_date <= utils.hell_week_2[1]:
-            return(False)           
-        
-        return(True)    
+                
+        return(self.location_id_supported(location_id))
+            

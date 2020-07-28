@@ -70,6 +70,7 @@ def get_date_of_week(year, week):
     
     return(r)
 
+
 def run_simple_query(client, query, allow_large_results=False):
     '''
     Method that runs a simple query
@@ -99,6 +100,22 @@ def get_current_locations(client):
     return( run_simple_query(client, sql))
 
 
+def get_geo_codes(client, location_id = None):
+    '''
+    Gets the geo codes of all locations
+    '''
+    
+    if not pd.isna(location_id):
+        sql = f'SELECT location_id, code_depto FROM grafos-alcaldia-bogota.geo.locations_geo_codes WHERE location_id = "{location_id}"'
+    else:
+        sql = f'SELECT location_id, code_depto FROM grafos-alcaldia-bogota.geo.locations_geo_codes'
+    
+    df_codes =  run_simple_query(client, sql)
+    
+    return(df_codes)
+    
+
+
 def get_dataset_of_location(client, location_id ):
     '''
     Gets the dataset of the given location id
@@ -124,16 +141,96 @@ def update_bogota_sample(client, todays_date):
     df_temp = run_simple_query(client, sql)
     max_date = df_temp.max_date.values[0]
     
+    print(f'      Updating Bogota until: {todays_date}')
     
     sql = f"""
         SELECT identifier, timestamp, date, device_lat, device_lon, province_short
-        FROM {table_id}
+        FROM servinf-unacast-prod.unacasttest.unacast_positions_partitioned
         WHERE (province_short = 'CO.33' OR province_short = 'CO.34')
              AND date > "{max_date}" AND date < "{todays_date}"
     
     """
     
     job_config = bigquery.QueryJobConfig(destination = "grafos-alcaldia-bogota.unacast_samples.unacast_bogota", 
+                                         write_disposition = 'WRITE_APPEND')
+    
+    
+    query_job = client.query(sql, job_config=job_config)  
+    query_job.result()
+    
+    return(query_job)
+
+
+
+
+def update_housing_colombia(client, todays_date):
+    '''
+    Method that updates the housing of colombia. Will only do so if at least a week has 
+    passed between the max date and today's date
+    '''
+    
+    table_id = "grafos-alcaldia-bogota.housing_location.colombia_housing_location"
+    
+    # Extracts max date
+    sql = f"SELECT MAX(week_date) as max_date FROM {table_id}"
+    
+    df_temp = run_simple_query(client, sql)
+    max_date = df_temp.max_date.values[0]
+    
+    
+    # Checks if at least a week has passed
+    days = (pd.to_datetime(todays_date).date() - max_date).days
+    
+    if days <= 7:
+        print(f'   Only {days} have passed since last update. Need at least 8. Will not excecute')
+        return(False)
+    
+    
+    print(f'      Updating Colombia Housing Locations from: {max_date} to {todays_date}')
+    
+    sql = f"""
+    
+        SELECT
+          identifier,
+          week_date,
+          AVG(avg_lat) as lat,
+          AVG(avg_lon) as lon,
+          code_depto
+        FROM
+          (SELECT
+              identifier,
+              week_date,
+              AVG(CASE WHEN hour < 22 THEN hour + 24 ELSE hour END) as avg_hour, -- Le suma 24 horas si son las horas de la mañana para que el promedio tenga sentido
+              STDDEV(CASE WHEN hour < 22 THEN hour + 24 ELSE hour END) as stf_hour, --  Igual pero para la desviacion.
+              COUNT(*) as sample_size,
+              AVG(device_lat) as avg_lat,
+              AVG(device_lon) as avg_lon,
+              STDDEV(device_lat) as std_lat,
+              STDDEV(device_lon) as std_lon,
+              province_short as code_depto,
+            FROM
+              ( SELECT
+              identifier,
+              device_lat,
+              device_lon,
+              DATE_ADD(DATE_TRUNC(DATE(timestamp), WEEK(MONDAY)), INTERVAL 6 DAY) as  week_date, -- Identifica cada semana con su domingo (ultimo dia de la semana)
+              EXTRACT( HOUR FROM timestamp) as hour,
+              province_short
+            FROM
+              `servinf-unacast-prod.unacasttest.unacast_positions_partitioned` -- Tabla de la consulta
+            WHERE
+              province_short LIKE 'CO.%' -- Por ahora solo Colombia
+              AND date > "{max_date}" AND date < "{todays_date}" -- Debe ser un lunes
+              AND device_horizontal_accuracy <= 30) as una 
+            WHERE una.hour >= 22 OR una.hour <= 4
+            GROUP BY una.identifier, una.week_date, code_depto) as grouped_weeks -- Semanas consolidadas
+        WHERE stf_hour >= 0.5 AND sample_size >= 5 AND std_lat <= 10e-4 AND std_lon <= 10e-4 -- Desviacion de 30 minutos entre muestras, al menos 5 puntos y desviacion de 15m entre muestras (en Colombia)
+        GROUP BY identifier, week_date, ROUND(avg_lat, 4), ROUND(avg_lon, 4), code_depto -- Aproxima a 15m
+
+    
+    """
+    
+    job_config = bigquery.QueryJobConfig(destination = table_id, 
                                          write_disposition = 'WRITE_APPEND')
     
     
@@ -480,12 +577,8 @@ def compute_transits(client, location_id, start_date, end_date, ident = '   '):
     '''
     
     print(ident + f'Adding transtits for: {location_id}. Between: {start_date} and {end_date}')
-    
-    
-    # Checks if the location is in bogota
-    sql = f'SELECT code_depto FROM grafos-alcaldia-bogota.geo.locations_geo_codes WHERE location_id = "{location_id}"'
-    
-    df_codes =  run_simple_query(client, sql)
+        
+    df_codes =  get_geo_codes(client, location_id)
     
     
     if df_codes.code_depto.apply(lambda c: c not in bogota_codes).sum() == 0:
@@ -991,3 +1084,20 @@ def get_edgelists_coverage(client):
         raise ValueError('Start Date and end date must both be none or none of them')
     
     return(df_locations)
+
+
+# The gini index function
+# Source: from https://github.com/oliviaguest/gini
+
+def gini(array):
+    """Calculate the Gini coefficient of a numpy array."""
+    # Method copied from https://github.com/oliviaguest/gini
+    
+    array = np.array(array).flatten() #all values are treated equally, arrays must be 1d
+    if np.amin(array) < 0:
+        array -= np.amin(array) #values cannot be negative
+    array = array + 0.0000001 #values cannot be 0
+    array = np.sort(array) #values must be sorted
+    index = np.arange(1,array.shape[0]+1) #index per array element
+    n = array.shape[0]#number of array elements
+    return ((np.sum((2 * index - n  - 1) * array)) / (n * np.sum(array))) #Gini coefficient

@@ -17,6 +17,7 @@ import update_transits
 import update_contacts
 import update_graphs
 import update_depto_codes
+import update_housing
 
 print('')
 print('')
@@ -49,6 +50,12 @@ print('')
 print('Edgelists')
 print('')
 update_graphs.main()
+
+print()
+print('Housing Locations')
+print('')
+update_housing.main()
+
 
 print('--------------------------------------')
 print('')

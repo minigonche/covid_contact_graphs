@@ -15,17 +15,22 @@ import nodes_attributes.node_degree as node_degree
 import nodes_attributes.node_pagerank as node_pagerank
 import nodes_attributes.node_betweenness as node_betweenness
 import nodes_attributes.node_eigenvector as node_eigenvector
+import nodes_attributes.node_personalized_pagerank as node_personalized_pagerank
+
 
 
 
 
 # Graphs
 import graphs_attributes.graph_size as graph_size
+import graphs_attributes.graph_num_edges as graph_num_edges
 import graphs_attributes.graph_num_contacts as graph_num_contacts
 import graphs_attributes.graph_pagerank_gini as graph_pagerank_gini
 import graphs_attributes.graph_betweenness_gini as graph_betweenness_gini
 import graphs_attributes.graph_eigenvector_gini as graph_eigenvector_gini
+import graphs_attributes.graph_personalized_pagerank_gini as graph_personalized_pagerank_gini
 import graphs_attributes.graph_powerlaw_degree_test as graph_powerlaw_degree_test
+
 
 
 
@@ -35,8 +40,8 @@ all_node_attributes = []
 all_node_attributes.append(node_degree.NodeDegree())
 all_node_attributes.append(node_pagerank.NodePageRank())
 all_node_attributes.append(node_eigenvector.NodeEigenvector())
+all_node_attributes.append(node_personalized_pagerank.NodePersonalizedPageRank())
 #all_node_attributes.append(node_betweenness.NodeBetweenness())
-
 
 
 
@@ -44,11 +49,13 @@ all_node_attributes.append(node_eigenvector.NodeEigenvector())
 # ------------------------------------
 all_graph_attributes = []
 all_graph_attributes.append(graph_size.GraphSize())
+all_graph_attributes.append(graph_num_edges.GraphNumEdges())
 all_graph_attributes.append(graph_num_contacts.GraphNumberOfContacts())
 all_graph_attributes.append(graph_pagerank_gini.GraphPageRankGini())
-#all_graph_attributes.append(graph_betweenness_gini.GraphBetweennessGini())
 all_graph_attributes.append(graph_eigenvector_gini.GraphEigenvectorGini())
+all_graph_attributes.append(graph_personalized_pagerank_gini.GraphPersonalizedPageRankGini())
 all_graph_attributes.append(graph_powerlaw_degree_test.GraphPowerLawTest())
+#all_graph_attributes.append(graph_betweenness_gini.GraphBetweennessGini())
 
 
 
