@@ -8,6 +8,9 @@ import utils
 
 attribute_name = 'pagerank_centrality'
 
+
+
+
 class NodePageRank(GenericNodeAttribute):
     '''
     Script that computes the pagerank of the nodes
@@ -51,12 +54,12 @@ class NodePageRank(GenericNodeAttribute):
         
         # Adds the values
         G.add_vertices(nodes.identifier.values)
-
-        # Adds weights
-        G.es['weight'] = edges.weight.values
         
         if edges.shape[0] > 0:
             G.add_edges(edges.apply(lambda df: (df.id1, df.id2), axis = 1))
+            
+        # Adds weights    
+        G.es['weight'] = edges.weight.values
         
         # Exctracs the pagerank
         page_rank = G.pagerank(weights = 'weight',  directed = False)
@@ -87,19 +90,20 @@ class NodePageRank(GenericNodeAttribute):
             Boolean
         '''
         
+        # Hell Week 2
+        not_included = ['colombia_medellin','colombia_valle_del_cauca','colombia_cali']
+        
         # Has support for everything except hell week
         if current_date >= utils.hell_week[0] and current_date <= utils.hell_week[1]:
             return(False)
         
-        # For medellin also include week 2
-        if location_id == 'colombia_medellin' and current_date >= utils.hell_week_2[0] and current_date <= utils.hell_week_2[1]:
-            return(False)
-        
-        # For valle_del_cauca also include week 2
-        if location_id == 'colombia_valle_del_cauca' and current_date >= utils.hell_week_2[0] and current_date <= utils.hell_week_2[1]:
+        # Hell week 2
+        if location_id in not_included and current_date >= utils.hell_week_2[0] and current_date <= utils.hell_week_2[1]:
             return(False) 
-        
-        
+                
+        if current_date == pd.to_datetime('2020-08-02'):
+            return(False)
+                
         
         return(True)
         

@@ -92,6 +92,7 @@ class GraphEigenvectorGini(GenericGraphAttribute):
     
 
     
+    
     def location_id_supported_on_date(self, location_id, current_date):
         '''
         Method that determines if the attribute is supported for the location_id (graph) on a specific date
@@ -108,16 +109,19 @@ class GraphEigenvectorGini(GenericGraphAttribute):
             Boolean
         '''
         
+        # Hell Week 2
+        not_included = ['colombia_medellin','colombia_valle_del_cauca','colombia_cali']
+        
         # Has support for everything except hell week
         if current_date >= utils.hell_week[0] and current_date <= utils.hell_week[1]:
             return(False)
         
-        # For medellin also include week 2
-        if location_id == 'colombia_medellin' and current_date >= utils.hell_week_2[0] and current_date <= utils.hell_week_2[1]:
-            return(False)   
+        # Hell week 2
+        if location_id in not_included and current_date >= utils.hell_week_2[0] and current_date <= utils.hell_week_2[1]:
+            return(False) 
+           
+        if current_date == pd.to_datetime('2020-08-02'):
+            return(False)
         
-        # For valle_del_cauca also include week 2
-        if location_id == 'colombia_valle_del_cauca' and current_date >= utils.hell_week_2[0] and current_date <= utils.hell_week_2[1]:
-            return(False)           
-        
-        return(True)    
+        return(True)
+    

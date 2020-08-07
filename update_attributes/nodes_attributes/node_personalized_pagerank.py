@@ -145,12 +145,12 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
         
         # Adds the values
         G.add_vertices(nodes.identifier.values)        
-            
-        # Adds weights to edges
-        G.es['weight'] = edges.weight.values
-        
+                    
         if edges.shape[0] > 0:
             G.add_edges(edges.apply(lambda df: (df.id1, df.id2), axis = 1))
+        
+        # Adds weights to edges
+        G.es['weight'] = edges.weight.values
         
         # Exctracs the personalized pagerank
         personalized_page_rank = G.personalized_pagerank(weights = 'weight', directed = False, reset = nodes['dist_weight'].values)
@@ -214,6 +214,9 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
         # Has support for everything except hell week
         if current_date >= utils.hell_week[0] and current_date <= utils.hell_week[1]:
             return(False)
+        
+        if current_date == pd.to_datetime('2020-08-02'):
+            return(False)        
                 
         return(self.location_id_supported(location_id))
         

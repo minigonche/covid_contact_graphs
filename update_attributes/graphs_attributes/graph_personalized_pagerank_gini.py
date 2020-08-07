@@ -145,6 +145,9 @@ class GraphPersonalizedPageRankGini(GenericGraphAttribute):
         # Has support for everything except hell week
         if current_date >= utils.hell_week[0] and current_date <= utils.hell_week[1]:
             return(False)
+        
+        if current_date == pd.to_datetime('2020-08-02'):
+            return(False)
                 
         return(self.location_id_supported(location_id))
             

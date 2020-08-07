@@ -19,8 +19,6 @@ import nodes_attributes.node_personalized_pagerank as node_personalized_pagerank
 
 
 
-
-
 # Graphs
 import graphs_attributes.graph_size as graph_size
 import graphs_attributes.graph_num_edges as graph_num_edges
@@ -30,6 +28,9 @@ import graphs_attributes.graph_betweenness_gini as graph_betweenness_gini
 import graphs_attributes.graph_eigenvector_gini as graph_eigenvector_gini
 import graphs_attributes.graph_personalized_pagerank_gini as graph_personalized_pagerank_gini
 import graphs_attributes.graph_powerlaw_degree_test as graph_powerlaw_degree_test
+import graphs_attributes.graph_eigenvalue_weighted as graph_eigenvalue_weighted
+import graphs_attributes.graph_eigenvalue_unweighted as graph_eigenvalue_unweighted
+import graphs_attributes.graph_transitivity as graph_transitivity
 
 
 
@@ -55,8 +56,11 @@ all_graph_attributes.append(graph_pagerank_gini.GraphPageRankGini())
 all_graph_attributes.append(graph_eigenvector_gini.GraphEigenvectorGini())
 all_graph_attributes.append(graph_personalized_pagerank_gini.GraphPersonalizedPageRankGini())
 all_graph_attributes.append(graph_powerlaw_degree_test.GraphPowerLawTest())
-#all_graph_attributes.append(graph_betweenness_gini.GraphBetweennessGini())
+all_graph_attributes.append(graph_eigenvalue_unweighted.GraphEigenValueUnweighted())
+all_graph_attributes.append(graph_eigenvalue_weighted.GraphEigenValueWeighted())
+all_graph_attributes.append(graph_transitivity.GraphTransitivity())
 
+#all_graph_attributes.append(graph_betweenness_gini.GraphBetweennessGini())
 
 
 
