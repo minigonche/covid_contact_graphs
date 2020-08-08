@@ -81,7 +81,8 @@ class GraphPowerLawTest(GenericGraphAttribute):
         df = utils.run_simple_query(self.client, query)
         
         if df.shape[0] == 0:
-            raise ValueError(f'No node degree found for {graph_id} on {end_date_string}')
+            print('             ' + f'No Degree found for {graph_id} on {end_date_string}')
+            return(pd.DataFrame({'value':None, 'attribute_name':[self.attribute_name] }))            
         
         
         # Excecutes the power law test

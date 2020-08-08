@@ -73,7 +73,8 @@ class GraphBetweennessGini(GenericGraphAttribute):
         df = utils.run_simple_query(self.client, query)
         
         if df.shape[0] == 0:
-            raise ValueError(f'No Betweenness Centrality found for {graph_id} on {end_date_string}')
+            print('             ' + f'No Betweeness Centrality found for {graph_id} on {end_date_string}')
+            return(pd.DataFrame({'value':None, 'attribute_name':[self.attribute_name] }))
         
         
         # Computes the Gini Index
@@ -83,36 +84,3 @@ class GraphBetweennessGini(GenericGraphAttribute):
 
         
         return(df_response)
-    
-    
-
-    
-    def location_id_supported_on_date(self, location_id, current_date):
-        '''
-        Method that determines if the attribute is supported for the location_id (graph) on a specific date
-        The default implementation is to return True if the current date is equal or larger that the starting_date.
-        Overwrite this method in case the attribute is not supported for a certain location_id (or several) at a particular date
-    
-        NOTE: This method is called several times inside a loop. Make sure you don't acces any expensive resources in the implementation.
-        
-        params
-            - location_id (str)
-            - current_date (pd.datetime): the current datetime
-
-        returns
-            Boolean
-        '''
-        
-        # Has support for everything except hell week
-        if current_date >= utils.hell_week[0] and current_date <= utils.hell_week[1]:
-            return(False)
-        
-        # For medellin also include week 2
-        if location_id == 'colombia_medellin' and current_date >= utils.hell_week_2[0] and current_date <= utils.hell_week_2[1]:
-            return(False)   
-        
-        # For valle_del_cauca also include week 2
-        if location_id == 'colombia_valle_del_cauca' and current_date >= utils.hell_week_2[0] and current_date <= utils.hell_week_2[1]:
-            return(False)           
-        
-        return(True)    

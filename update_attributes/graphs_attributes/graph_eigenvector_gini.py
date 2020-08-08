@@ -73,12 +73,8 @@ class GraphEigenvectorGini(GenericGraphAttribute):
         df = utils.run_simple_query(self.client, query)
 
         if df.shape[0] == 0:
-            message = f'No Betweenness Centrality found for {graph_id} on {end_date_string}'
-            if graph_id == 'colombia_university_rosario_campus_norte':
-                print('             ' + message)
-                return(pd.DataFrame({'value':None, 'attribute_name':[self.attribute_name] }))
-            else:                    
-                raise ValueError(message)
+            print('             ' + f'No Eigenvalue Centrality found for {graph_id} on {end_date_string}')
+            return(pd.DataFrame({'value':None, 'attribute_name':[self.attribute_name] }))
                 
         
         # Computes the Gini Index
@@ -86,42 +82,7 @@ class GraphEigenvectorGini(GenericGraphAttribute):
         
         df_response = pd.DataFrame({'value':[gini_inex], 'attribute_name':[self.attribute_name] })
 
-        
         return(df_response)
     
     
 
-    
-    
-    def location_id_supported_on_date(self, location_id, current_date):
-        '''
-        Method that determines if the attribute is supported for the location_id (graph) on a specific date
-        The default implementation is to return True if the current date is equal or larger that the starting_date.
-        Overwrite this method in case the attribute is not supported for a certain location_id (or several) at a particular date
-    
-        NOTE: This method is called several times inside a loop. Make sure you don't acces any expensive resources in the implementation.
-        
-        params
-            - location_id (str)
-            - current_date (pd.datetime): the current datetime
-
-        returns
-            Boolean
-        '''
-        
-        # Hell Week 2
-        not_included = ['colombia_medellin','colombia_valle_del_cauca','colombia_cali']
-        
-        # Has support for everything except hell week
-        if current_date >= utils.hell_week[0] and current_date <= utils.hell_week[1]:
-            return(False)
-        
-        # Hell week 2
-        if location_id in not_included and current_date >= utils.hell_week_2[0] and current_date <= utils.hell_week_2[1]:
-            return(False) 
-           
-        if current_date == pd.to_datetime('2020-08-02'):
-            return(False)
-        
-        return(True)
-    

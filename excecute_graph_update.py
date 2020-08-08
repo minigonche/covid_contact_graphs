@@ -18,6 +18,7 @@ import update_contacts
 import update_graphs
 import update_depto_codes
 import update_housing
+import update_sizes
 
 print('')
 print('')
@@ -55,6 +56,11 @@ print()
 print('Housing Locations')
 print('')
 update_housing.main()
+
+print()
+print('Graph Sizes')
+print('')
+update_sizes.main()
 
 
 print('--------------------------------------')

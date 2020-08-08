@@ -11,9 +11,9 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
     Class for the Generic Graph Attribute
     '''
 
-    def __init__(self, attribute_name, starting_date = attribute_generic.starting_date):
+    def __init__(self, attribute_name, starting_date = attribute_generic.starting_date, max_num_nodes = np.inf, max_num_edges = np.inf):
         # Initilizes the super class
-        GenericWeeklyAttribute.__init__(self, attribute_name,  starting_date)
+        GenericWeeklyAttribute.__init__(self, attribute_name,  starting_date, max_num_nodes, max_num_edges)
 
 
 

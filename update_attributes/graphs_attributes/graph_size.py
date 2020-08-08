@@ -77,22 +77,3 @@ class GraphSize(GenericGraphAttribute):
 
         return(df)
     
-        
-    
-    def location_id_supported_on_date(self, location_id, current_date):
-        '''
-        Method that determines if the attribute is supported for the location_id (graph)
-        The default implementation is to return True if the current date is equal or larger that the starting_date.
-        Overwrite this method in case the attribute is not supported for a certain location_id (or several) at a particular date
-    
-        NOTE: This method is called several times inside a loop. Make sure you don't acces any expensive resources in the implementation.
-        
-        params
-            - location_id (str)
-            - current_date (pd.datetime): the current datetime
-
-        returns
-            Boolean
-        '''
-                
-        return(current_date >= self.starting_date)
