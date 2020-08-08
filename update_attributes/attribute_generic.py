@@ -4,6 +4,7 @@ import utils
 from google.cloud import bigquery
 import pandas as pd
 from datetime import datetime, timedelta
+import numpy as np
 
 
 # Start date
@@ -21,7 +22,7 @@ class GenericWeeklyAttribute():
 
 
     # Initializer
-    def __init__(self, attribute_name, starting_date = starting_date):
+    def __init__(self, attribute_name, starting_date = starting_date, max_num_nodes = np.inf, max_num_edges = np.inf):
         '''
         Initializer of the class.
 
@@ -46,9 +47,12 @@ class GenericWeeklyAttribute():
             
         # Extracts the locations
         self.df_locations = utils.get_current_locations(self.client)
-        self.df_locations.index = self.df_locations.location_id     
-
-
+        self.df_locations.index = self.df_locations.location_id
+        
+        
+        # Extracts the sizes
+        self.df_graph_sizes = utils.get_all_graph_sizes(self.client)
+        self.df_graph_sizes.set_index(['location_id','date'], inplace = True)
 
 
     # --- Global Abstract Methods
@@ -119,11 +123,16 @@ class GenericWeeklyAttribute():
             Boolean
         '''
 
-        # Has support for everything except hell week
-        if current_date >= utils.hell_week[0] and current_date <= utils.hell_week[1]:
-            return(False)
+        # Uses the sizes
+        num_edges = self.df_graph_sizes.loc[(location_id,current_date),'num_edges']
+        num_nodes = self.df_graph_sizes.loc[(location_id,current_date),'num_nodes']
         
-        return(current_date >= self.starting_date)
+        support = num_edges <= self.max_num_edges and num_nodes <= self.max_num_nodes
+        
+        if not support:
+            print(f'            Nodes: {num_nodes} and Edges: {num_edges} exceeds max: ({self.max_num_nodes},{self.max_num_edges})')
+        
+        return(support)
 
 
 

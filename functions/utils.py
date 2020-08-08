@@ -15,17 +15,13 @@ import os
 
 # Global min date
 global_min_date = pd.to_datetime('2020-02-01 00:00:00')
+global_min_sunday = pd.to_datetime('2020-02-09 00:00:00')
 
 # GLobal date fomat
 date_format = '%Y-%m-%d'
 
 # Global temp dataset
 temp_data_set_id = "download_temp"
-
-# Hell Week (La semana donde se fue todo a la mierda con los datos)
-hell_week = [pd.to_datetime('2020-03-02 00:00:00'), pd.to_datetime('2020-03-08 00:00:00')]
-hell_week_2 = [pd.to_datetime('2020-03-09 00:00:00'), pd.to_datetime('2020-03-15 00:00:00')]
-
 
 graphs_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.graph_attributes'
 nodes_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.node_attributes'
@@ -126,6 +122,22 @@ def get_dataset_of_location(client, location_id ):
 
     return(df.loc[location_id, 'dataset'])
 
+
+
+def get_all_graph_sizes(client):
+    '''
+    gets all the sizes
+    '''
+    
+    sql = f"""
+        
+        SELECT location_id, date, num_nodes, num_edges
+        FROM graph_attributes.graph_sizes
+        ORDER BY location_id, date
+    
+    """
+
+    return( run_simple_query(client, sql))
 
 
 def update_bogota_sample(client, todays_date):
@@ -368,6 +380,23 @@ def get_max_dates_for_node_attributes(client):
     """
 
     return(run_simple_query(client, sql))
+
+
+
+def get_max_dates_for_graph_statistics(client):
+    '''
+    Method that gets the max dates of a given attribute
+    '''
+
+    sql = f"""
+        SELECT location_id, MAX(date) as max_date
+        FROM grafos-alcaldia-bogota.graph_attributes.graph_sizes
+        GROUP BY location_id
+    """
+
+    return(run_simple_query(client, sql))
+
+
 
 
 

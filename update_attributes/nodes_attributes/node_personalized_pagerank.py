@@ -9,6 +9,10 @@ import utils
 
 attribute_name = 'personalized_pagerank_centrality'
 
+# Max Support
+max_num_nodes = np.inf
+max_num_edges = 50000000 # 50 Millions
+
 # Epsilon
 eps = 1e-16
 # Constant for division (For weight depending on distance)
@@ -21,7 +25,7 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericNodeAttribute.__init__(self, attribute_name)
+        GenericNodeAttribute.__init__(self, attribute_name, max_num_nodes, max_num_edges)
             
         self.df_codes =  utils.get_geo_codes(self.client, location_id = None)
         self.df_codes.index = self.df_codes.location_id
@@ -192,33 +196,7 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
         
         return(in_bogota)
     
-    
-    
-    
-    def location_id_supported_on_date(self, location_id, current_date):
-        '''
-        Method that determines if the attribute is supported for the location_id (graph) on a specific date
-        The default implementation is to return True if the current date is equal or larger that the starting_date.
-        Overwrite this method in case the attribute is not supported for a certain location_id (or several) at a particular date
-    
-        NOTE: This method is called several times inside a loop. Make sure you don't acces any expensive resources in the implementation.
-        
-        params
-            - location_id (str)
-            - current_date (pd.datetime): the current datetime
 
-        returns
-            Boolean
-        '''
-        
-        # Has support for everything except hell week
-        if current_date >= utils.hell_week[0] and current_date <= utils.hell_week[1]:
-            return(False)
-        
-        if current_date == pd.to_datetime('2020-08-02'):
-            return(False)        
-                
-        return(self.location_id_supported(location_id))
         
     
     

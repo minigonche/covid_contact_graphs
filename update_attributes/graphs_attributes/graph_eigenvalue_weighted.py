@@ -9,6 +9,9 @@ import utils
 
 attribute_name = 'largest_eigenvalue_weighted'
 
+# Max Support
+max_num_nodes = np.inf
+max_num_edges = 50000000 # 50 Millions
 
 class GraphEigenValueWeighted(GenericGraphAttribute):
     '''
@@ -19,7 +22,7 @@ class GraphEigenValueWeighted(GenericGraphAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, attribute_name)
+        GenericGraphAttribute.__init__(self, attribute_name, max_num_nodes, max_num_edges)
                         
 
     # --- Global Abstract Methods
