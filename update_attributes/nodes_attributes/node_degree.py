@@ -4,6 +4,7 @@
 from node_attribute_generic import GenericNodeAttribute
 import pandas as pd
 import utils
+import numpy as np
 
 attribute_name = 'node_degree'
 
@@ -14,7 +15,7 @@ class NodeDegree(GenericNodeAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericNodeAttribute.__init__(self, attribute_name)
+        GenericNodeAttribute.__init__(self, attribute_name = attribute_name)
 
 
     # --- Global Abstract Methods

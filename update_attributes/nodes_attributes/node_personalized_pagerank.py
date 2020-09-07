@@ -6,12 +6,16 @@ import pandas as pd
 import numpy as np
 import igraph as ig
 import utils
+import positive_db_functions as pos_fun
+
 
 attribute_name = 'personalized_pagerank_centrality'
 
 # Max Support
 max_num_nodes = np.inf
 max_num_edges = 50000000 # 50 Millions
+
+priority = 2
 
 # Epsilon
 eps = 1e-16
@@ -25,10 +29,13 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericNodeAttribute.__init__(self, attribute_name, max_num_nodes, max_num_edges)
+        GenericNodeAttribute.__init__(self, attribute_name = attribute_name, max_num_nodes = max_num_nodes, max_num_edges = max_num_edges, priority = priority)
             
         self.df_codes =  utils.get_geo_codes(self.client, location_id = None)
         self.df_codes.index = self.df_codes.location_id
+        
+        # Gets the max date of symptoms for each supported location        
+        self.max_dates = pos_fun.get_positive_max_dates(self.client)
     
 
     # --- Global Abstract Methods
@@ -76,55 +83,19 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
         returns
             pd.DataFrame with the structure of the output of the method compute_attribute   
         '''
-                
-            
-            
+                        
         query = f"""
-                with 
-                -- Graph Ids
-                graph_ids as (
-                     SELECT identifier
-                     FROM grafos-alcaldia-bogota.transits.hourly_transits
-                     WHERE location_id = "{graph_id}"
-                           AND date <= "{end_date_string}"
-                           AND date >  DATE_SUB(DATE("{end_date_string}"), INTERVAL 7 DAY) -- Los transitos de la ultima semana
-                     GROUP BY identifier
-                ),
-                -- Housing
-                houses as (
-                  SELECT loc.identifier, lat,lon
-                  FROM grafos-alcaldia-bogota.housing_location.colombia_housing_location as loc
-                  JOIN graph_ids
-                  ON loc.identifier = graph_ids.identifier
-                  WHERE loc.week_date >= DATE_SUB(DATE("{end_date_string}"), INTERVAL 4 WEEK)
-                     AND loc.week_date <= "{end_date_string}"  -- Casas del ultimo mes
-                   ),
-
-                -- Distance to infected
-                distances as (
-                SELECT identifier, MIN(distance) as distance_to_infected
-                FROM
-                (
-                 SELECT
-                 houses.identifier as identifier,
-                 ST_DISTANCE(ST_GEOGPOINT(houses.lon, houses.lat), infectados.geometry) as distance -- Distancia a infectado (en metros)
-                 FROM houses as houses -- Tabla con las casas
-                 CROSS JOIN (SELECT * FROM `servinf-unacast-prod.AlcaldiaBogota.positivos_agg_fecha` 
-                  where DATE(fec_con_cast) >= DATE_SUB(DATE("{end_date_string}"), INTERVAL 30 DAY) ) as infectados -- Tabla con los infectados (del ultimo mes)
-                 ) as d -- Matriz de distancia entre las casas y los infectados
-                 GROUP BY identifier -- Agrupa por el identificador para encontrar la minima distancia
-                 )
-
-
-                 -- Final Query
-                 SELECT graph_ids.identifier as identifier, distances.distance_to_infected as distance_to_infected
-                 FROM graph_ids
-                 LEFT JOIN distances
-                 ON graph_ids.identifier = distances.identifier
+             SELECT identifier, attribute_value as distance_to_infected
+                FROM graph_attributes.node_attributes
+                WHERE location_id = '{graph_id}'
+                    AND date = '{end_date_string}'
         """
         
         # Compute Weights
         df_distances = utils.run_simple_query(self.client, query, allow_large_results = True)
+        
+        if df_distances.shape[0] == 0:
+            raise ValueError(f'No distance to infected found for {graph_id} on {end_date_string}. Please compute it!')
         
         # Sets Nones
         df_distances.fillna(np.inf, inplace = True)
@@ -170,10 +141,11 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
     
     
     
-    
-
     def location_id_supported(self, location_id):
         '''
+        OVERWRITTEN
+        # ---------------
+        
         Method that determines if the attribute is supported for the location_id (graph).
         The default implementation is to return True.
 
@@ -188,13 +160,38 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
         returns
             Boolean
         '''
-        
+
         if location_id == 'colombia_university_rosario_campus_norte':
             return(False)
         
-        in_bogota = self.df_codes.loc[[location_id]].code_depto.apply(lambda c: c not in utils.bogota_codes).sum() == 0
+        return( pos_fun.has_positives_database(self.client, location_id, self.df_codes))
+    
+
         
-        return(in_bogota)
+    def location_id_supported_on_date(self, location_id, current_date):
+        '''
+        OVERWRITTEN
+        # --------------
+        
+        Method that determines if the attribute is supported for the location_id (graph) on a specific date
+        The default implementation is to return True if the current date is equal or larger that the starting_date and is not inside hell week
+        Overwrite this method in case the attribute is not supported for a certain location_id (or several) at a particular date
+    
+        NOTE: This method is called several times inside a loop. Make sure you don't acces any expensive resources in the implementation.
+        
+        params
+            - location_id (str)
+            - current_date (pd.datetime): the current datetime
+
+        returns
+            Boolean
+        '''
+        
+        uo_to_date = pos_fun.positives_up_to_date(self.client, location_id, current_date, self.df_codes, self.max_dates)
+        
+        return(uo_to_date)    
+
+
     
 
         

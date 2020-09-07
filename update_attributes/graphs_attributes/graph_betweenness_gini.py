@@ -18,7 +18,7 @@ class GraphBetweennessGini(GenericGraphAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, attribute_name)
+        GenericGraphAttribute.__init__(self, attribute_name = attribute_name )
                         
 
     def compute_attribute(self, nodes, edges):

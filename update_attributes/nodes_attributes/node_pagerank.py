@@ -5,6 +5,7 @@ from node_attribute_generic import GenericNodeAttribute
 import pandas as pd
 import igraph as ig
 import utils
+import numpy as np
 
 attribute_name = 'pagerank_centrality'
 
@@ -19,7 +20,7 @@ class NodePageRank(GenericNodeAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericNodeAttribute.__init__(self, attribute_name, max_num_nodes, max_num_edges)
+        GenericNodeAttribute.__init__(self, attribute_name = attribute_name, max_num_nodes = max_num_nodes, max_num_edges = max_num_edges)
                 
 
     # --- Global Abstract Methods

@@ -15,7 +15,7 @@ def main():
     # Starts Client
     client = bigquery.Client(location="US")
     
-    today = pd.to_datetime(datetime.today())
+    today = utils.get_today()
 
     #DEBUG
     #today = pd.to_datetime("2020-07-10")
@@ -25,8 +25,7 @@ def main():
 
     # Filters out
     selected = df_locations[(df_locations.end_date.isna()) | (df_locations.end_date + timedelta(days = 1) < today)] # Substracts one day so that it does not compute partial days
-
-
+    
     start_time = time.time()
     print('Started')
 

@@ -14,15 +14,25 @@ def main():
 
     # Gets the coverage
     client = bigquery.Client(location="US")
+
+
+    # Transits
     df_transits = utils.get_transits_coverage(client)
+
+    # Locations
+    df_locations = utils.get_current_locations(client)
+
+    # Merges
+    df_locations = df_locations.merge(df_transits, on = 'location_id', how = 'left')
     
-    today = pd.to_datetime(datetime.today())
+    
+    today = utils.get_today()
     
     # Updates Bogota
     utils.update_bogota_sample(client, today.strftime(utils.date_format))
 
     # Filters out
-    selected = df_transits[(df_transits.max_date.isna()) | (df_transits.max_date + timedelta(days = 1) < today)]
+    selected = df_locations[(df_locations.max_date.isna()) | (df_locations.max_date + timedelta(days = 1) < today)]
 
     start_time = time.time()
     print('Started')
@@ -35,7 +45,7 @@ def main():
 
         # Start date
         start_date =  utils.global_min_date.strftime( utils.date_format)
-        if row.max_date is not None:
+        if not pd.isna(row.max_date):
             start_date = (pd.to_datetime(row.max_date) + timedelta(days = 1)).strftime(utils.date_format)
 
         # Today

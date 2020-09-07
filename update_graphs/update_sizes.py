@@ -12,7 +12,7 @@ def main():
 
     # Extracts the current date
     # Extracts the current date. Substract one day and the goes back to the colsest sunday
-    end_date = pd.to_datetime(datetime.today()) - timedelta(days = 1)
+    end_date = utils.get_today() - timedelta(days = 1)
     while end_date.dayofweek != 6:
         end_date = end_date - timedelta(days = 1)         
 

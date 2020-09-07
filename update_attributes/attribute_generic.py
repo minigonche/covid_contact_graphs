@@ -22,7 +22,11 @@ class GenericWeeklyAttribute():
 
 
     # Initializer
-    def __init__(self, attribute_name, starting_date = starting_date, max_num_nodes = np.inf, max_num_edges = np.inf):
+    def __init__(self, attribute_name, 
+                       starting_date = starting_date, 
+                       max_num_nodes = np.inf, 
+                       max_num_edges = np.inf,
+                       priority = 1):
         '''
         Initializer of the class.
 
@@ -53,6 +57,14 @@ class GenericWeeklyAttribute():
         # Extracts the sizes
         self.df_graph_sizes = utils.get_all_graph_sizes(self.client)
         self.df_graph_sizes.set_index(['location_id','date'], inplace = True)
+        
+        # Sets max sizes
+        self.max_num_nodes = max_num_nodes
+        self.max_num_edges = max_num_edges
+        
+        # Priority
+        self.priority = priority
+        
 
 
     # --- Global Abstract Methods
@@ -130,7 +142,7 @@ class GenericWeeklyAttribute():
         support = num_edges <= self.max_num_edges and num_nodes <= self.max_num_nodes
         
         if not support:
-            print(f'            Nodes: {num_nodes} and Edges: {num_edges} exceeds max: ({self.max_num_nodes},{self.max_num_edges})')
+            print(f'               Nodes: {num_nodes} and Edges: {num_edges} exceeds max: ({self.max_num_nodes},{self.max_num_edges})')
         
         return(support)
 

@@ -18,7 +18,7 @@ def main():
     update_start = time.time()
 
     # Today
-    today = pd.to_datetime(datetime.now().strftime('%Y-%m-%d 00:00:00'))
+    today = utils.get_today()
 
     # Parameters
     jump = 12 # Hours

@@ -4,6 +4,7 @@
 from graph_attribute_generic import GenericGraphAttribute
 import pandas as pd
 import utils
+import numpy as np
 
 attribute_name = 'graph_size'
 

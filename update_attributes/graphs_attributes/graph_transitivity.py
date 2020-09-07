@@ -20,7 +20,7 @@ class GraphTransitivity(GenericGraphAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, attribute_name, max_num_nodes, max_num_edges)
+        GenericGraphAttribute.__init__(self, attribute_name = attribute_name, max_num_nodes = max_num_nodes, max_num_edges = max_num_edges)
                         
 
     # --- Global Abstract Methods

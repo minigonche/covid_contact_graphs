@@ -16,6 +16,7 @@ import os
 # Global min date
 global_min_date = pd.to_datetime('2020-02-01 00:00:00')
 global_min_sunday = pd.to_datetime('2020-02-09 00:00:00')
+global_min_housing_sunday = pd.to_datetime('2020-01-05 00:00:00')
 
 # GLobal date fomat
 date_format = '%Y-%m-%d'
@@ -27,6 +28,23 @@ graphs_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.graph_attribut
 nodes_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.node_attributes'
 
 bogota_codes = ['CO.34','CO.33']
+palmira_codes = ['CO.34','CO.33']
+
+global_accuracy = 30
+
+
+
+def get_today(only_date = False):
+    '''
+    Returns today (with shift for us time)
+    '''
+    
+    if only_date:
+        d = pd.to_datetime((datetime.now() - timedelta(hours = 6)).strftime('%Y-%m-%d'))
+    else:
+        d = pd.to_datetime((datetime.now() - timedelta(hours = 6)).strftime('%Y-%m-%d 00:00:00'))
+    
+    return(d)
 
 def get_year_and_week_of_date(d):
     '''
@@ -82,18 +100,69 @@ def run_simple_query(client, query, allow_large_results=False):
     
 
     
-def get_current_locations(client):
+def get_current_locations(client, only_active = True):
     '''
     Gets all the current locations
     '''
     
-    sql = f"""
+    if only_active:
+        sql = f"""
+            SELECT location_id, name, precision, dataset, type
+            FROM grafos-alcaldia-bogota.geo.locations_geometries
+            WHERE active = TRUE
+            GROUP BY location_id, name, precision, dataset, type
+      """
+
+    else:
+        sql = f"""
             SELECT location_id, name, precision, dataset, type
             FROM grafos-alcaldia-bogota.geo.locations_geometries
             GROUP BY location_id, name, precision, dataset, type
-    """
-    
+      """
+
     return( run_simple_query(client, sql))
+
+
+def get_current_locations_complete(client, only_active = True):
+    '''
+    Gets all the current locations (including geometry)
+    '''
+    
+    if only_active:
+        sql = f"""
+            SELECT *
+            FROM grafos-alcaldia-bogota.geo.locations_geometries
+            WHERE active = TRUE
+            
+      """
+
+    else:
+        sql = f"""
+            SELECT *
+            FROM grafos-alcaldia-bogota.geo.locations_geometries
+      """
+
+    return( run_simple_query(client, sql))
+
+def is_in_bogota(client, location_id, df_codes = None):
+    '''
+    Checks if the given location_id is in bogota
+    '''
+    
+    if df_codes is None:
+        df_codes = utils.get_geo_codes(client, location_id = None)
+        df_codes.index = df_codes.location_id
+    
+    in_bogota = df_codes.loc[[location_id]].code_depto.apply(lambda c: c not in bogota_codes).sum() == 0
+    
+    return(in_bogota)
+
+def is_in_palmira(client, location_id, df_codes = None):
+    '''
+    Checks if the location id is in plamira
+    '''
+
+    return('colombia_palmira' in location_id)
 
 
 def get_geo_codes(client, location_id = None):
@@ -173,41 +242,57 @@ def update_bogota_sample(client, todays_date):
     return(query_job)
 
 
-
-
-def update_housing_colombia(client, todays_date):
+def get_housing_code_coverage(client):
     '''
-    Method that updates the housing of colombia. Will only do so if at least a week has 
-    passed between the max date and today's date
+    Gets the max dates for all codes
     '''
     
-    table_id = "grafos-alcaldia-bogota.housing_location.colombia_housing_location"
-    
-    # Extracts max date
-    sql = f"SELECT MAX(week_date) as max_date FROM {table_id}"
-    
-    df_temp = run_simple_query(client, sql)
-    max_date = df_temp.max_date.values[0]
-    
-    
-    # Checks if at least a week has passed
-    days = (pd.to_datetime(todays_date).date() - max_date).days
-    
-    if days <= 7:
-        print(f'   Only {days} have passed since last update. Need at least 8. Will not excecute')
-        return(False)
-    
-    
-    print(f'      Updating Colombia Housing Locations from: {max_date} to {todays_date}')
     
     sql = f"""
+            SELECT codes.code_depto as code_depto,
+                   max_date       
+            FROM
+            (SELECT code_depto,
+                   MAX(week_date) as max_date
+            FROM housing_location.colombia_housing_location 
+            GROUP BY code_depto) as loc
+            RIGHT JOIN
+            (SELECT code_depto
+             FROM geo.locations_geo_codes
+             GROUP BY code_depto) as codes
+             ON codes.code_depto = loc.code_depto
     
-        SELECT
+    """
+    
+    return(run_simple_query(client, sql))
+
+
+
+
+
+def update_housing(client, code_depto, start_date, end_date):
+    '''
+    Updates Housing for a given code for a given sunday (and the 6 days behind)
+    
+    '''
+
+    table_id = "grafos-alcaldia-bogota.housing_location.colombia_housing_location"
+
+    if pd.to_datetime(start_date).dayofweek != 0:
+        raise ValueError(f'Given Start date is not a monday. Day of week: {pd.to_datetime(start_date).dayofweek}')  
+        
+    if pd.to_datetime(end_date).dayofweek != 6:
+        raise ValueError(f'Given end date is not a sunday. Day of week: {pd.to_datetime(end_date).dayofweek}')    
+    
+    # SQL Housing
+    sql_housing = f"""
+    SELECT
           identifier,
           week_date,
-          AVG(avg_lat) as lat,
-          AVG(avg_lon) as lon,
-          code_depto
+          avg_lat as lat,
+          avg_lon as lon,
+          code_depto,
+          "HOUSE" as type
         FROM
           (SELECT
               identifier,
@@ -231,25 +316,122 @@ def update_housing_colombia(client, todays_date):
             FROM
               `servinf-unacast-prod.unacasttest.unacast_positions_partitioned` -- Tabla de la consulta
             WHERE
-              province_short LIKE 'CO.%' -- Por ahora solo Colombia
-              AND date > "{max_date}" AND date < "{todays_date}" -- Debe ser un lunes
+              province_short = "{code_depto}" 
+              AND date >= "{start_date}" AND date <= "{end_date}" -- Lunes y Domingo
               AND device_horizontal_accuracy <= 30) as una 
             WHERE una.hour >= 22 OR una.hour <= 4
             GROUP BY una.identifier, una.week_date, code_depto) as grouped_weeks -- Semanas consolidadas
         WHERE stf_hour >= 0.5 AND sample_size >= 5 AND std_lat <= 10e-4 AND std_lon <= 10e-4 -- Desviacion de 30 minutos entre muestras, al menos 5 puntos y desviacion de 15m entre muestras (en Colombia)
-        GROUP BY identifier, week_date, ROUND(avg_lat, 4), ROUND(avg_lon, 4), code_depto -- Aproxima a 15m
 
     
+    """
+    
+    # SQL WORK
+    sql_work = f"""
+    SELECT
+          identifier,
+          week_date,
+          avg_lat as lat,
+          avg_lon as lon,
+          code_depto,
+          "WORK" as type
+        FROM
+          (SELECT
+              identifier,
+              week_date,
+              AVG(hour) as avg_hour,
+              STDDEV(hour) as std_hour,
+              STDDEV(week_day) as std_day,
+              COUNT(*) as sample_size,
+              AVG(device_lat) as avg_lat,
+              AVG(device_lon) as avg_lon,
+              STDDEV(device_lat) as std_lat,
+              STDDEV(device_lon) as std_lon,
+              province_short as code_depto,
+            FROM
+              ( SELECT
+              identifier,
+              device_lat,
+              device_lon,
+              EXTRACT(DAYOFWEEK FROM timestamp) as week_day,
+              DATE_ADD(DATE_TRUNC(DATE(timestamp), WEEK(MONDAY)), INTERVAL 6 DAY) as  week_date, -- Identifica cada semana con su domingo (ultimo dia de la semana)
+              EXTRACT( HOUR FROM timestamp) as hour,
+              province_short
+            FROM
+              `servinf-unacast-prod.unacasttest.unacast_positions_partitioned` -- Tabla de la consulta
+            WHERE
+              province_short = "{code_depto}" 
+              AND date >= "{start_date}" AND date <= "{end_date}" -- Lunes y Domingo
+              AND device_horizontal_accuracy <= 30) as una 
+            WHERE (una.hour >= 9 AND una.hour <= 12) OR (una.hour >= 2 AND una.hour <= 5)
+            GROUP BY una.identifier, una.week_date, code_depto) as grouped_weeks -- Semanas consolidadas
+        WHERE std_day > 1 AND std_hour >= 0.5 AND sample_size >= 10 AND std_lat <= 10e-4 AND std_lon <= 10e-4 -- Desviacion de 1 dia entre dias, 30 minutos entre muestras, al menos 10 puntos y desviacion de 15m entre muestras (en Colombia)
+    """
+    
+    # SQL COMMON
+    sql_common = f"""
+    
+        SELECT
+          identifier,
+          week_date,
+          avg_lat as lat,
+          avg_lon as lon,
+          code_depto,
+          "COMMON" as type
+        FROM
+          (SELECT
+              identifier,
+              week_date,
+              AVG(hour) as avg_hour,
+              STDDEV(hour) as std_hour,
+              STDDEV(week_day) as std_day,
+              COUNT(*) as sample_size,
+              AVG(device_lat) as avg_lat,
+              AVG(device_lon) as avg_lon,
+              STDDEV(device_lat) as std_lat,
+              STDDEV(device_lon) as std_lon,
+              province_short as code_depto,
+            FROM
+              ( SELECT
+              identifier,
+              device_lat,
+              device_lon,
+              EXTRACT(DAYOFWEEK FROM timestamp) as week_day,
+              DATE_ADD(DATE_TRUNC(DATE(timestamp), WEEK(MONDAY)), INTERVAL 6 DAY) as  week_date, -- Identifica cada semana con su domingo (ultimo dia de la semana)
+              EXTRACT( HOUR FROM timestamp) as hour,
+              province_short
+            FROM
+              `servinf-unacast-prod.unacasttest.unacast_positions_partitioned` -- Tabla de la consulta
+            WHERE
+              province_short = "{code_depto}" 
+              AND date >= "{start_date}" AND date <= "{end_date}" -- Lunes y Domingo
+              AND device_horizontal_accuracy <= 30) as una 
+            GROUP BY una.identifier, una.week_date, code_depto) as grouped_weeks -- Semanas consolidadas
+        WHERE std_day > 1.5 AND std_hour >= 3 AND sample_size >= 30 AND std_lat <= 10e-4 AND std_lon <= 10e-4 -- Desviacion de 1.5 dias entre dias, 3 horas entre muestras, al menos 10 puntos y desviacion de 15m entre muestras (en Colombia)
+
     """
     
     job_config = bigquery.QueryJobConfig(destination = table_id, 
                                          write_disposition = 'WRITE_APPEND')
     
     
-    query_job = client.query(sql, job_config=job_config)  
+    # Excecutes
+    # Houses
+    query_job = client.query(sql_housing, job_config=job_config)
     query_job.result()
     
+    # Work
+    query_job = client.query(sql_work, job_config=job_config)
+    query_job.result()
+    
+    # Common
+    query_job = client.query(sql_common, job_config=job_config) 
+    query_job.result()
+    
+    
+    
     return(query_job)
+
 
 
 def node_attribute_exists(client, location_id, attribute_name, date):
@@ -385,7 +567,7 @@ def get_max_dates_for_node_attributes(client):
 
 def get_max_dates_for_graph_statistics(client):
     '''
-    Method that gets the max dates of a given attribute
+    Method that gets the max dates of the graph sizes
     '''
 
     sql = f"""
@@ -398,6 +580,113 @@ def get_max_dates_for_graph_statistics(client):
 
 
 
+def get_max_dates_for_graph_movement(client):
+    '''
+    Method that gets the max dates of the graph movement
+    '''
+
+    sql = f"""
+            SELECT location_id, MIN(date) as min_date, MAX(date) as max_date 
+            FROM grafos-alcaldia-bogota.graph_attributes.graph_movement
+            GROUP BY location_id
+            
+    """
+
+    return(run_simple_query(client, sql))
+
+
+
+def compute_movement(client, location_id, date_string):
+    '''
+    Computes the movmeent for the given graph
+    '''
+    
+    job_config= bigquery.QueryJobConfig(destination= "grafos-alcaldia-bogota.graph_attributes.graph_movement",
+                            write_disposition = 'WRITE_APPEND')
+    # Massive Query
+    sql = f"""
+         WITH   tr as (
+                  SELECT DISTINCT identifier
+                  FROM grafos-alcaldia-bogota.transits.hourly_transits
+                  WHERE date = "{date_string}" AND location_id = "{location_id}"
+                  GROUP BY identifier
+                ), # --   Transits
+                paths as (
+                  SELECT p.*
+                  FROM grafos-alcaldia-bogota.paths.identifiers_paths as p
+                  JOIN tr ON tr.identifier = p.identifier
+                  WHERE p.date = "{date_string}"
+                ), -- Paths
+              labeled_paths as (SELECT identifier,
+                 distance,
+              ST_DWithin(ST_GeogPoint(paths.lon_1, paths.lat_1), 
+                (SELECT geometry FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"), 
+                  (SELECT precision FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}")) as start_in,
+              ST_DWithin(ST_GeogPoint(paths.lon_2, paths.lat_2), 
+                (SELECT geometry FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"), 
+                  (SELECT precision FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}")) as end_in      
+                FROM paths),
+                identifier_positions as (SELECT identifier, NOT (LOGICAL_AND(start_in) AND LOGICAL_AND(end_in)) as traveled
+                                         FROM labeled_paths
+                                         GROUP BY identifier)
+
+
+
+        # Final Select
+        SELECT "{location_id}" as location_id,
+               DATE("{date_string}") as date,
+               all_devices,
+               devices_with_movement,
+               (all_devices - devices_with_movement) + devices_no_traveled as devices_stayed_in,
+               devices_traveled_outside,
+               ((all_devices - devices_with_movement) + devices_no_traveled) / (all_devices + 0.00000001) as percentaga_stayed_in,
+               devices_traveled_outside / (all_devices + + 0.00000001) as percentaga_treveled_outside,
+               all_movement,
+               all_movement_avg,
+               inner_movement,
+               inner_movement_avg,
+               outer_movement,
+               outer_movement_avg
+        FROM (SELECT  # -- Devices
+                    (SELECT COUNT(*) FROM tr) as all_devices,
+                    (SELECT COUNT(*) FROM identifier_positions) as devices_with_movement,
+                    (SELECT COUNT(*) FROM identifier_positions WHERE NOT traveled) devices_no_traveled,
+                    (SELECT COUNT(*) FROM identifier_positions WHERE traveled) devices_traveled_outside,
+
+                    # -- All movement
+                   (SELECT SUM(distance)/1000
+                    FROM labeled_paths) as all_movement,
+                   (SELECT AVG(distance)/1000
+                    FROM (SELECT SUM(distance) as distance
+                           FROM labeled_paths
+                           GROUP BY identifier)) as all_movement_avg,
+
+                   # -- Inner Movement
+                   (SELECT SUM(distance)/1000
+                    FROM labeled_paths
+                    WHERE start_in AND end_in) as inner_movement,
+                   (SELECT AVG(distance)/1000
+                    FROM (SELECT SUM(distance) as distance
+                           FROM labeled_paths
+                           WHERE start_in AND end_in
+                           GROUP BY identifier)) as inner_movement_avg,
+
+                   # -- Outer Movement
+                   (SELECT SUM(distance)/1000
+                    FROM labeled_paths
+                    WHERE NOT start_in AND NOT end_in) as outer_movement,
+                   (SELECT AVG(distance)/1000
+                    FROM (SELECT SUM(distance) as distance
+                           FROM labeled_paths
+                           WHERE NOT start_in AND NOT end_in
+                           GROUP BY identifier)) as outer_movement_avg)               
+
+    """
+
+    query_job = client.query(sql, job_config= job_config) 
+    query_job.result()
+    
+    return(True)
 
 
 def create_temp_table(client, table_name, code_depto, start_date, end_date, accuracy = 30):
@@ -528,7 +817,7 @@ def append_by_time_window(client, start_timestamp, end_timestamp, code_depto, so
             WHERE              
                   unacast.identifier < unacast2.identifier
               AND ABS(CAST(TIMESTAMP_DIFF(unacast.timestamp, unacast2.timestamp, Minute) AS int64)) <= 2
-              AND ST_DWITHIN(ST_GeogPoint(unacast.device_lon, unacast.device_lat), ST_GeogPoint(unacast2.device_lon, unacast2.device_lat),20)
+              AND ST_DWITHIN(ST_GeogPoint(unacast.device_lon, unacast.device_lat), ST_GeogPoint(unacast2.device_lon, unacast2.device_lat),2)
         ) 
         GROUP BY date, hour, code_depto, id1, id2
     """
@@ -669,17 +958,10 @@ def get_transits_coverage(client):
     job_config = bigquery.QueryJobConfig()
         
     
-    sql = f"""
-        SELECT t2.location_id, t1.min_date, t1.max_date, t1.total_transits
-        FROM
-        (SELECT location_id, MIN(date) as min_date, MAX(date) as max_date, COUNT(*) as total_transits
+    sql = f"""        
+        SELECT location_id, MIN(date) as min_date, MAX(date) as max_date, COUNT(*) as total_transits
         FROM `grafos-alcaldia-bogota.transits.hourly_transits` 
-        GROUP BY location_id) as t1
-        RIGHT JOIN 
-        (SELECT location_id
-        FROM `grafos-alcaldia-bogota.geo.locations_geometries`
-        GROUP BY location_id) AS t2
-        ON t1.location_id = t2.location_id
+        GROUP BY location_id
     """
     
     query_job = client.query(sql, job_config=job_config) 
@@ -718,6 +1000,112 @@ def get_coverage_of_depto_codes(client):
     df = query_job.to_dataframe()
     
     return(df)
+
+def get_path_coverage_of_depto_codes(client):
+    '''
+    Return a pandas DataFrame with the coverage of dates for each code_depto for the 
+    different paths
+    '''
+    
+    job_config = bigquery.QueryJobConfig()
+        
+    
+    sql = f"""
+        SELECT t1.code_depto, total_locations, total_points, min_date, max_date
+        FROM
+        (SELECT code_depto, COUNT(*) as total_locations
+        FROM grafos-alcaldia-bogota.geo.locations_geo_codes
+        GROUP BY code_depto) as t1
+        LEFT JOIN
+        (SELECT code_depto, COUNT(*) as total_points, MIN(date) as min_date, MAX(date) as max_date
+        FROM grafos-alcaldia-bogota.paths.identifiers_paths
+        GROUP BY code_depto) as t2
+        ON t1.code_depto = t2.code_depto
+    """
+    
+    query_job = client.query(sql, job_config=job_config) 
+
+    # Return the results as a pandas DataFrame
+    df = query_job.to_dataframe()
+    
+    return(df)
+
+
+
+def add_paths_for_code_on_date(client, code_depto, date, accuracy = global_accuracy):
+    '''
+    Method that updates the paths for the given attributes
+    '''
+    
+    destination_table_id = f"grafos-alcaldia-bogota.paths.identifiers_paths"
+    job_config = bigquery.QueryJobConfig(destination = destination_table_id, 
+                                         write_disposition = 'WRITE_APPEND')
+        
+    sql = f"""
+    
+            WITH sorted_devices as (SELECT
+                                      "{code_depto}" as code_depto,
+                                      identifier,
+                                      date,
+                                      EXTRACT(HOUR FROM MAX(unacast.timestamp)) AS hour,
+                                      MAX(timestamp) as timestamp,
+                                      unacast.device_lon as lon,
+                                      unacast.device_lat as lat,
+                                      ROW_NUMBER() OVER(ORDER BY identifier, MAX(timestamp)) AS row_num
+                                    FROM
+                                      `servinf-unacast-prod.unacasttest.unacast_positions_partitioned` AS unacast
+                                    WHERE
+                                      date = "{date}"
+                                      AND device_horizontal_accuracy <= {accuracy}
+                                      AND province_short = "{code_depto}"
+                                    GROUP BY identifier, date, unacast.device_lon, unacast.device_lat),
+                 next_positions as (SELECT s1.code_depto as code_depto, 
+                                           s1.identifier as identifier, 
+                                           s1.date as date, 
+                                           s1.hour as hour_1, 
+                                           s2.hour as hour_2, 
+                                           s1.timestamp as t1, 
+                                           s2.timestamp as t2,
+                                           s1.lon as lon_1,
+                                           s1.lat as lat_1, 
+                                           s2.lon as lon_2, 
+                                           s2.lat as lat_2
+                                    FROM sorted_devices as s1
+                                    JOIN sorted_devices as s2
+                                    ON s1.row_num +1 = s2.row_num 
+                                        AND s1.identifier = s2.identifier
+                                        AND s1.timestamp <> s2.timestamp
+                                    ORDER BY s1.row_num, identifier, t1, t2)
+
+            SELECT code_depto, 
+                    identifier, 
+                    date,
+                    hour_1, 
+                    hour_2,
+                    t1, 
+                    t2, 
+                    lon_1,
+                    lat_1, 
+                    lon_2, 
+                    lat_2,
+                    distance,
+                    minutes,
+                    distance / minutes as velocity
+            FROM
+            (
+                SELECT *,
+                       ST_DISTANCE(ST_GEOGPOINT(nx.lon_1, nx.lat_1), ST_GEOGPOINT(nx.lon_2, nx.lat_2)) as distance, 
+                       DATETIME_DIFF(nx.t2, nx.t1, MINUTE) as minutes
+                FROM next_positions as nx
+            ) WHERE minutes > 30 OR (distance / (minutes + 0.000000001) < 40) # 150 km/h
+    """
+    
+
+    query_job = client.query(sql, job_config=job_config)  
+    query_job.result()
+    
+    return(query_job)
+    
 
 
 
@@ -797,7 +1185,7 @@ def update_contacts_for_depto_code(client, code_depto, start_time, end_time,
                                   hours = jump)
         except BadRequest as e:
             
-            print(e)
+            #print(e)
 
             if jump > min_jump:
                 jump = min_jump
@@ -958,7 +1346,10 @@ def create_dataset(client, dataset_id):
     '''
     
     # Creates
-    dataset = client.create_dataset(dataset_id) 
+    try:
+        dataset = client.create_dataset(dataset_id) 
+    except:
+        pass
 
 def create_edgelist_table(client, dataset, graph_id):
     '''
@@ -1070,8 +1461,9 @@ def get_edgelists_coverage(client):
     
     if df_old_coverage is not None:
         for ind, row in df_old_coverage.iterrows():
-            df_locations.loc[row.location_id,'start_date'] = row.start_date
-            df_locations.loc[row.location_id,'end_date'] = row.end_date
+            if row.location_id in df_locations.location_id:
+                df_locations.loc[row.location_id,'start_date'] = row.start_date
+                df_locations.loc[row.location_id,'end_date'] = row.end_date
             
     # Extracts final dates
     for ind, row in df_locations.iterrows():

@@ -19,6 +19,8 @@ import update_graphs
 import update_depto_codes
 import update_housing
 import update_sizes
+import update_paths
+import update_movement
 
 print('')
 print('')
@@ -33,6 +35,13 @@ print()
 print('Depto Codes')
 print('')
 update_depto_codes.main()
+
+print('--------------------------------------')
+print()
+print('Paths')
+print('')
+update_paths.main()
+
 
 print('--------------------------------------')
 print()
@@ -61,6 +70,11 @@ print()
 print('Graph Sizes')
 print('')
 update_sizes.main()
+
+print()
+print('Graph Movement')
+print('')
+update_movement.main()
 
 
 print('--------------------------------------')

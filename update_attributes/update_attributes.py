@@ -1,16 +1,21 @@
 # Update Attributes
 # Script that computes all the attributes
-import utils
 from google.cloud import bigquery
-from datetime import datetime, timedelta
+from google.api_core.exceptions import BadRequest
 import pandas as pd
 import time
 import numpy as np
+from datetime import timedelta, datetime
+import os
+
+# Custom Scripts
+import utils
 
 
 # imports all the attributes
 
 # Nodes
+import nodes_attributes.node_distance_to_infected as node_distance_to_infected
 import nodes_attributes.node_degree as node_degree
 import nodes_attributes.node_pagerank as node_pagerank
 import nodes_attributes.node_betweenness as node_betweenness
@@ -39,6 +44,7 @@ import graphs_attributes.graph_transitivity as graph_transitivity
 # Include here the desired node attributes
 # ------------------------------------
 all_node_attributes = []
+all_node_attributes.append(node_distance_to_infected.NodeDistanceToInfected())
 all_node_attributes.append(node_degree.NodeDegree())
 all_node_attributes.append(node_pagerank.NodePageRank())
 all_node_attributes.append(node_eigenvector.NodeEigenvector())
@@ -68,8 +74,8 @@ all_graph_attributes.append(graph_transitivity.GraphTransitivity())
 def main():
 
     # Extracts the current date
-    # Extracts the current date. Substract one day and the goes back to the colsest sunday
-    end_date = pd.to_datetime(datetime.today()) - timedelta(days = 1)
+    # Extracts the current date. Substract one day and the goes back to the closest sunday
+    end_date = utils.get_today(only_date = True) - timedelta(days = 1)
     while end_date.dayofweek != 6:
         end_date = end_date - timedelta(days = 1)         
 
