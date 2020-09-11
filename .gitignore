@@ -1,6 +1,7 @@
 # enviorment
 env/
 edge_detection/
+cases_uploads/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
