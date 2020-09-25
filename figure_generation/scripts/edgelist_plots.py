@@ -33,6 +33,7 @@ round_number = 4 # 15m
 
 ident = '   '
 
+
 def filter(df_geo, min_lat, max_lat, min_lon, max_lon):
     resp = df_geo[(df_geo.lat >= min_lat) & (df_geo.lat <= max_lat)].copy()
     resp = resp[(resp.lon >= min_lon) & (resp.lon <= max_lon)]
@@ -55,7 +56,9 @@ def main(report_name, locations_id, dataset_id, min_date, max_date, dif = None, 
         Max date for the movement
 
     '''
+
     if (dif is None) and (gdf_polygon is None):
+
         print(f'WARNING: No filtering method was given, it is possible that the resulting figure will be too zoomed out. \
         To get an appropriate plotting window provide either a number of standard deviations (through the parameter "dif") or \
             a geopandas with a polygon (through the parameter "gdf_polygon") to get the desired area in focus.')
@@ -70,12 +73,15 @@ def main(report_name, locations_id, dataset_id, min_date, max_date, dif = None, 
     location_count = []
 
     current_date = min_date
+
     print(ident + f'Computing Centralities from: {min_date.strftime(date_format)} to {max_date.strftime(date_format)}')
+
     while current_date <= max_date:
         
         current_date_string = current_date.strftime(date_format)
         
         print(ident + f'   Date: {current_date_string}')
+
             
         for hour in range(6,22):
             
@@ -104,6 +110,7 @@ def main(report_name, locations_id, dataset_id, min_date, max_date, dif = None, 
         
         current_date = current_date + timedelta(days = 1)
 
+
     # Merges
     df_locations_pagerank = pd.concat(location_pagerank, ignore_index = True)
 
@@ -118,6 +125,7 @@ def main(report_name, locations_id, dataset_id, min_date, max_date, dif = None, 
     # ---------------------------
     # Calculate top places with more contacts
     df_locations = get_contacs_by_location(dataset_id, location_id, min_date.strftime(date_format), max_date.strftime(date_format))
+
     df_locations = df_locations.head(total_places)
 
     df1 = df_locations[['lat','lon','total_contacts']].rename(columns = {'total_contacts':'total'})
@@ -126,12 +134,14 @@ def main(report_name, locations_id, dataset_id, min_date, max_date, dif = None, 
     df1.lat = df1.lat + np.random.normal(0,eps,df1.shape[0])
     df1.lon = df1.lon + np.random.normal(0,eps,df1.shape[0])
 
+
     geo_locations = gpd.GeoDataFrame(df1,crs =  "EPSG:4326", geometry=gpd.points_from_xy(df1.lon, df1.lat))
     geo_locations = geo_locations.to_crs(epsg=3857)
 
     # PAGERANK
     # Top Places
     # ---------------------------
+
     # Calculate top places more frequently selected when removing 10% of edges
     df2 = df_locations_pagerank[['lat','lon','total']].copy()
     df2.lon = df2.lon.round(round_number)
@@ -144,6 +154,7 @@ def main(report_name, locations_id, dataset_id, min_date, max_date, dif = None, 
 
     geo_pagerank = gpd.GeoDataFrame(df2,crs =  "EPSG:4326", geometry=gpd.points_from_xy(df2.lon, df2.lat))
     geo_pagerank = geo_pagerank.to_crs(epsg=3857)
+
 
     # PAGERANK
     # Traces
@@ -189,6 +200,7 @@ if __name__ == "__main__":
 
     # If a polygon is given to delimit plotting area
     if len(sys.argv) > 5:
+
         polygon = sys.argv[5]
         gdf_polygon = gpd.read_file(polygon)
     else:
@@ -199,6 +211,7 @@ if __name__ == "__main__":
 
     weighted = False
     dataset_id = 'edgelists_cities'
-    
+
     main(report_name, location_id, dataset_id, min_date, max_date, dif, gdf_polygon)
+
     
