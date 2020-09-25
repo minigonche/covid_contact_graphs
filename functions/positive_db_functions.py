@@ -15,7 +15,7 @@ days_delay = 3
 bogota_sql_max_date = """
                     SELECT MAX(DATE(TIMESTAMP(fechainici))) as max_date
                     FROM `servinf-unacast-prod.AlcaldiaBogota.positivos_agg_fecha`
-                    WHERE fechainici <> ''
+                    WHERE CHAR_LENGTH(fechainici) = 10
                 """
 
 
