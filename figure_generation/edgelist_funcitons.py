@@ -140,7 +140,7 @@ def sort_edges_by_centrality(nodes, edges, centrality):
     return(new_edges)
 
 
-def sort_edges(nodes, edges, method):
+def sort_edges(nodes, edges, method, weighted = False):
     '''
     Sorts the edges
     
@@ -151,7 +151,7 @@ def sort_edges(nodes, edges, method):
     
     if method.upper() == 'EIGENVECTOR':
         
-        centrality = compute_eigenvector(nodes, edges, weighted = False)
+        centrality = compute_eigenvector(nodes, edges, weighted)
         return(sort_edges_by_centrality(nodes, edges, centrality))
     
     if method.upper() == 'PAGERANK':

@@ -1,47 +1,63 @@
-# Node personalized pagerank
+# Graph Number of cases attribute
 
 
-from node_attribute_generic import GenericNodeAttribute
+from graph_attribute_generic import GenericGraphAttribute
 import pandas as pd
-import numpy as np
-import igraph as ig
 import utils
+import numpy as np
 import positive_db_functions as pos_fun
 
+attribute_name = 'number_of_cases_accumulated'
 
-attribute_name = 'personalized_pagerank_centrality'
 
-# Max Support
-max_num_nodes = np.inf
-max_num_edges = 50000000 # 50 Millions
 
-priority = 2
 
-# Epsilon
-eps = 1e-16
-# Constant for division (For weight depending on distance)
-div = 1200 # in meters
+# Queries
+# ---------
+# Generic Query
+generic_sql = """
 
-class NodePersonalizedPageRank(GenericNodeAttribute):
+        SELECT COUNT(*) as total
+        FROM  grafos-alcaldia-bogota.positives.{table_name}
+        WHERE  date_start_symtoms <= "{end_date_string}"
+            AND ST_DWithin(ST_GeogPoint(lon, lat), 
+                (SELECT geometry FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"), 
+                  (SELECT precision FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"))
+"""
+
+
+# Bogota
+# --------
+bogota_sql = """
+
+        SELECT COUNT(*) as total
+        FROM  `servinf-unacast-prod.AlcaldiaBogota.positivos_agg_fecha` 
+        WHERE  fechainici <= "{end_date_string}"
+           AND ST_DWithin(geometry, 
+                (SELECT geometry FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"), 
+                  (SELECT precision FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"))
+"""
+
+class GraphNumberOfCasesAccumulated(GenericGraphAttribute):
     '''
-    Script that computes the pagerank of the nodes
+    Script that computes the number of cases by the given week
     '''
 
     def __init__(self):
         # Initilizes the super class
-        GenericNodeAttribute.__init__(self, attribute_name = attribute_name, max_num_nodes = max_num_nodes, max_num_edges = max_num_edges, priority = priority)
-            
+        GenericGraphAttribute.__init__(self, attribute_name)  
+
+
         self.df_codes =  utils.get_geo_codes(self.client, location_id = None)
         self.df_codes.index = self.df_codes.location_id
         
         # Gets the max date of symptoms for each supported location        
-        self.max_dates = pos_fun.get_positive_max_dates(self.client)
-    
+        self.max_dates = pos_fun.get_positive_max_dates(self.client) 
 
-    # --- Global Abstract Methods
+                
+
     def compute_attribute(self, nodes, edges):
         '''
-        # TODO
         Main Method to Implement
         
         This method must be implemented by the subclass. It receives compact nodes and edges and 
@@ -61,14 +77,12 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
         
         returns
             pd.DataFrame with the following structure
-                - attribute_name (str): The attribute name                     
-                - identifier (str): Identifier of the node or graph
+                - attribute_name (str): The attribute name                
                 - value (float): The value of the attribute
         '''
-
+    
         raise ValueError('Should not enter here')
     
-
     
     def compute_attribute_for_interval(self, graph_id, start_date_string, end_date_string):
         '''
@@ -83,64 +97,33 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
         returns
             pd.DataFrame with the structure of the output of the method compute_attribute   
         '''
-                        
-        query = f"""
-             SELECT identifier, attribute_value as distance_to_infected
-                FROM graph_attributes.node_attributes
-                WHERE location_id = '{graph_id}'
-                    AND date = '{end_date_string}'
-        """
+           
+        in_bogota = utils.is_in_bogota(self.client, graph_id, self.df_codes)
+        in_palmira = utils.is_in_palmira(self.client, graph_id, self.df_codes)
         
-        # Compute Weights
-        df_distances = utils.run_simple_query(self.client, query, allow_large_results = True)
+        if in_bogota:
+            query = bogota_sql.format(end_date_string = end_date_string, location_id = graph_id)
+            
+        elif in_palmira:
+            query = generic_sql.format(table_name = 'palmira', end_date_string = end_date_string, location_id = graph_id)
+            
+        # Computes the total
+        response = utils.run_simple_query(self.client, query)
         
-        if df_distances.shape[0] == 0:
-            raise ValueError(f'No distance to infected found for {graph_id} on {end_date_string}. Please compute it!')
-        
-        # Sets Nones
-        df_distances.fillna(np.inf, inplace = True)
-        
-        # Apply inverted soft_plus
-        df_distances['dist_weight'] = np.log(1 + np.exp(-1*df_distances.distance_to_infected/div))/np.log(2)
-         
-        
-        # Nodes
-        nodes = self.get_compact_nodes(graph_id, start_date_string, end_date_string)
-        
-        # Merges with weights        
-        nodes = nodes.merge(df_distances, on = 'identifier', how = 'left')
-        #print(nodes.dist_weight.isna().sum())
-        nodes.fillna(0, inplace = True)
-        
-        # Edges               
-        edges = self.get_compact_edgelist(graph_id, start_date_string, end_date_string)    
-        
-        # Create the graph
-        G = ig.Graph()
-        
-        # Adds the values
-        G.add_vertices(nodes.identifier.values)        
-                    
-        if edges.shape[0] > 0:
-            G.add_edges(edges.apply(lambda df: (df.id1, df.id2), axis = 1))
-        
-        # Adds weights to edges
-        G.es['weight'] = edges.weight.values
-        
-        # Exctracs the personalized pagerank
-        personalized_page_rank = G.personalized_pagerank(weights = 'weight', directed = False, reset = nodes['dist_weight'].values)
-        
-        # Adds it to the nodes
-        nodes['value'] = personalized_page_rank
-        
+        # Sets the value
+        response.rename(columns = {'total':'value'}, inplace = True)
+                
         # Adds the attribute name
-        nodes['attribute_name'] = self.attribute_name
+        response['attribute_name'] = self.attribute_name
         
+
         # Returns the value
-        return(nodes)
+        return(response)
     
     
     
+    
+
     def location_id_supported(self, location_id):
         '''
         OVERWRITTEN
@@ -160,10 +143,7 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
         returns
             Boolean
         '''
-
-        if location_id == 'colombia_university_rosario_campus_norte':
-            return(False)
-        
+                        
         return( pos_fun.has_positives_database(self.client, location_id, self.df_codes))
     
 
@@ -187,17 +167,7 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
             Boolean
         '''
         
-        uo_to_date = pos_fun.positives_up_to_date(self.client, location_id, current_date, self.df_codes, self.max_dates)
+        up_to_date = pos_fun.positives_up_to_date(self.client, location_id, current_date, self.df_codes, self.max_dates)
         
-        return(uo_to_date)    
-
-
-    
-
-        
-    
-    
-    
-    
-    
-    
+        return(up_to_date)
+            
