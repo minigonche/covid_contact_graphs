@@ -97,7 +97,7 @@ bogota_sql = """
                  ST_DISTANCE(ST_GEOGPOINT(houses.lon, houses.lat), infectados.geometry) as distance -- Distancia a infectado (en metros)
                  FROM houses as houses -- Tabla con las casas
                  CROSS JOIN (SELECT * FROM `servinf-unacast-prod.AlcaldiaBogota.positivos_agg_fecha`                  
-                    WHERE  fechainici <> "" AND "{end_date_string}" >= DATE_SUB(DATE(TIMESTAMP(fechainici)), INTERVAL 5 DAY) 
+                    WHERE  TRIM(fechainici) <> "" AND "{end_date_string}" >= DATE_SUB(DATE(TIMESTAMP(fechainici)), INTERVAL 5 DAY) 
                             AND "{end_date_string}" <= DATE_ADD(DATE(TIMESTAMP(fechainici)), INTERVAL 15 DAY)   
                       ) as infectados -- Tabla con los infectados (del ultimo mes)             
                  ) as d -- Matriz de distancia entre las casas y los infectados
