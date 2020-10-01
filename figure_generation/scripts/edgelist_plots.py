@@ -9,8 +9,17 @@ import contextily as ctx
 from datetime import timedelta
 import matplotlib.pyplot as plt
 from google.cloud import bigquery
+import os, sys
 
-from functions.utils import compute_eigenvector, get_contacts, sort_edges, get_contacs_by_location
+
+# Adds the general path
+curr_path = os.path.dirname(os.path.realpath(__file__))
+global_path = os.path.join(curr_path, '..','..')
+sys.path.append(global_path)
+
+from functions.utils import *
+import figure_generation.constants as con
+from figure_generation.edgelist_funcitons import *
 
 # Starts the client
 client = bigquery.Client(location="US")
@@ -21,6 +30,9 @@ eps = 0.001
 total_places = 10
 percentage = 0.1
 round_number = 4 # 15m
+
+ident = '   '
+
 
 def filter(df_geo, min_lat, max_lat, min_lon, max_lon):
     resp = df_geo[(df_geo.lat >= min_lat) & (df_geo.lat <= max_lat)].copy()
@@ -44,7 +56,9 @@ def main(report_name, locations_id, dataset_id, min_date, max_date, dif = None, 
         Max date for the movement
 
     '''
-    if (dif == None) and (gdf_polygon == None):
+
+    if (dif is None) and (gdf_polygon is None):
+
         print(f'WARNING: No filtering method was given, it is possible that the resulting figure will be too zoomed out. \
         To get an appropriate plotting window provide either a number of standard deviations (through the parameter "dif") or \
             a geopandas with a polygon (through the parameter "gdf_polygon") to get the desired area in focus.')
@@ -59,11 +73,15 @@ def main(report_name, locations_id, dataset_id, min_date, max_date, dif = None, 
     location_count = []
 
     current_date = min_date
+
+    print(ident + f'Computing Centralities from: {min_date.strftime(date_format)} to {max_date.strftime(date_format)}')
+
     while current_date <= max_date:
         
         current_date_string = current_date.strftime(date_format)
         
-        print(f'Date: {current_date_string}')
+        print(ident + f'   Date: {current_date_string}')
+
             
         for hour in range(6,22):
             
@@ -91,19 +109,23 @@ def main(report_name, locations_id, dataset_id, min_date, max_date, dif = None, 
 
         
         current_date = current_date + timedelta(days = 1)
-        
-        
+
+
+    # Merges
     df_locations_pagerank = pd.concat(location_pagerank, ignore_index = True)
 
     if dif != None:
+    
         #Removes outliers
-        df_locations_pagerank = df_locations_pagerank[np.abs(df_locations_pagerank.lon - df_locations_pagerank.lon.mean()) \
-            < dif*df_locations_pagerank.lon.std()].copy()
-        df_locations_pagerank = df_locations_pagerank[np.abs(df_locations_pagerank.lat - df_locations_pagerank.lat.mean()) \
-            < dif*df_locations_pagerank.lat.std()].copy()
+        df_locations_pagerank = df_locations_pagerank[(np.abs(df_locations_pagerank.lon - df_locations_pagerank.lon.mean()) < dif*df_locations_pagerank.lon.std()) & (np.abs(df_locations_pagerank.lat - df_locations_pagerank.lat.mean()) < dif*df_locations_pagerank.lat.std())].copy()
 
+
+    print(df_locations_pagerank.shape)
+    # NUM CONTACTS
+    # ---------------------------
     # Calculate top places with more contacts
-    df_locations = get_contacs_by_location(dataset_id, location_id, start_date.strftime(date_format), end_date.strftime(date_format))
+    df_locations = get_contacs_by_location(dataset_id, location_id, min_date.strftime(date_format), max_date.strftime(date_format))
+
     df_locations = df_locations.head(total_places)
 
     df1 = df_locations[['lat','lon','total_contacts']].rename(columns = {'total_contacts':'total'})
@@ -115,6 +137,10 @@ def main(report_name, locations_id, dataset_id, min_date, max_date, dif = None, 
 
     geo_locations = gpd.GeoDataFrame(df1,crs =  "EPSG:4326", geometry=gpd.points_from_xy(df1.lon, df1.lat))
     geo_locations = geo_locations.to_crs(epsg=3857)
+
+    # PAGERANK
+    # Top Places
+    # ---------------------------
 
     # Calculate top places more frequently selected when removing 10% of edges
     df2 = df_locations_pagerank[['lat','lon','total']].copy()
@@ -128,6 +154,11 @@ def main(report_name, locations_id, dataset_id, min_date, max_date, dif = None, 
 
     geo_pagerank = gpd.GeoDataFrame(df2,crs =  "EPSG:4326", geometry=gpd.points_from_xy(df2.lon, df2.lat))
     geo_pagerank = geo_pagerank.to_crs(epsg=3857)
+
+
+    # PAGERANK
+    # Traces
+    # ---------------------------
 
     # Calculate places 
     df3 = df_locations_pagerank[['lat','lon','total']].copy()
@@ -143,9 +174,10 @@ def main(report_name, locations_id, dataset_id, min_date, max_date, dif = None, 
         max_lat = bound.maxy.max
         max_lon = bound.maxx.max
 
-        geo_pagerank_f = filter(geo_pagerank, min_lat, max_lat, min_lon, max_lon)
-        geo_pagerank_trace_f = filter(geo_pagerank_trace, min_lat, max_lat, min_lon, max_lon)
-        geo_locations_f = filter(geo_locations, min_lat, max_lat, min_lon, max_lon)
+        geo_pagerank = filter(geo_pagerank, min_lat, max_lat, min_lon, max_lon)
+        geo_pagerank_trace = filter(geo_pagerank_trace, min_lat, max_lat, min_lon, max_lon)
+        geo_locations = filter(geo_locations, min_lat, max_lat, min_lon, max_lon)
+
 
     ax = geo_pagerank_trace.plot(figsize=(12, 12), alpha=0.1, markersize = 12, color = 'yellow')
     geo_pagerank.plot(alpha=1, markersize = 21, color = 'blue', ax = ax)
@@ -158,14 +190,17 @@ if __name__ == "__main__":
 
     # Reads the parameters from excecution
     report_name  = sys.argv[1] # report name
-    num_days_back = int(sys.argv[2]) # num_days_back
-    location_id = sys.argv[3]
-    if len(sys.argv) == 4:
-        dif = sys.argv[4] # std-dev for filtering out outliers
-    else: dif = 2
+    location_id = sys.argv[2]
+    num_days_back = int(sys.argv[3]) # num_days_back
+
+    if len(sys.argv) > 4:
+        dif = float(sys.argv[4]) # std-dev for filtering out outliers
+    else: 
+        dif = 2
 
     # If a polygon is given to delimit plotting area
-    if len(sys.argv) == 5:
+    if len(sys.argv) > 5:
+
         polygon = sys.argv[5]
         gdf_polygon = gpd.read_file(polygon)
     else:
@@ -176,6 +211,7 @@ if __name__ == "__main__":
 
     weighted = False
     dataset_id = 'edgelists_cities'
-    
-    main(report_name, locations_id, dataset_id, min_date, max_date, dif, polygon)
+
+    main(report_name, location_id, dataset_id, min_date, max_date, dif, gdf_polygon)
+
     

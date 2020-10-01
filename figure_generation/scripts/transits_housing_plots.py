@@ -66,6 +66,7 @@ def main(report_name, location_id, min_date, max_date):
     print(ident + 'Plots Trasits Housing')
     # export location
     export_folder_location = os.path.join(con.reports_folder_location, report_name, con.figure_folder_name)
+    
     if not os.path.exists(export_folder_location):
         os.makedirs(export_folder_location)
 

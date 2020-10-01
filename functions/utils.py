@@ -1097,7 +1097,7 @@ def add_paths_for_code_on_date(client, code_depto, date, accuracy = global_accur
                        ST_DISTANCE(ST_GEOGPOINT(nx.lon_1, nx.lat_1), ST_GEOGPOINT(nx.lon_2, nx.lat_2)) as distance, 
                        DATETIME_DIFF(nx.t2, nx.t1, MINUTE) as minutes
                 FROM next_positions as nx
-            ) WHERE minutes > 30 OR (distance / (minutes + 0.000000001) < 40) # 150 km/h
+            ) WHERE minutes > 30 OR (minutes > 0 AND distance / (minutes + 0.0000001) < 40) # 150 km/h
     """
     
 
