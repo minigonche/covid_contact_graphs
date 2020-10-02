@@ -55,7 +55,7 @@ treatment_date = sys.argv[5] # treatment_date
 
 db_treatment = DB[treatment_polygon_name]
 
-if len(sys.argv) == 7:
+if len(sys.argv) == 8:
     start_date = sys.argv[6] 
     start_date = pd.Timestamp(datetime.datetime.strptime(start_date, '%Y-%m-%d'))
 else:

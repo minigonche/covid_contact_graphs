@@ -1,3 +1,3 @@
 location_id,report_name,treatment_polygon,control_polygon,treatment_date,start_date,end_date
-colombia,reporte_palmira,colombia_palmira_study_1,None,2020-07-01,,
+colombia,reporte_palmira,colombia_palmira_study_1,None,2020-07-01,2020-03-20,2020-08-01
 colombia,reporte_palmira,colombia_palmira_study_1,colombia_palmira_study_2,2020-07-01,,

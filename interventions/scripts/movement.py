@@ -75,7 +75,7 @@ export_folder_location = os.path.join(con.reports_folder_location, report_name, 
 if not os.path.exists(export_folder_location):
     os.makedirs(export_folder_location)    
     
-if len(sys.argv) == 7:
+if len(sys.argv) == 8:
     start_date = sys.argv[6] 
     start_date = pd.Timestamp(datetime.datetime.strptime(start_date, '%Y-%m-%d'))
 else:

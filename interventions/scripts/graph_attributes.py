@@ -77,7 +77,7 @@ treatment_polygon_name = sys.argv[3] # treatment_polygon
 control_polygon_name = sys.argv[4] # control_polygon
 treatment_date = sys.argv[5] # treatment_date
     
-if len(sys.argv) == 7:
+if len(sys.argv) == 8:
     start_date = sys.argv[6] 
     start_date = pd.Timestamp(datetime.datetime.strptime(start_date, '%Y-%m-%d'))
 else:
