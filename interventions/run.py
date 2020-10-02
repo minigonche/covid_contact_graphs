@@ -7,8 +7,7 @@ import pandas as pd
 import utils.excecution_functions as ef
 
 # Constants
-scripts = {"single":["contacts_single_polygon.py", "graph_attributes_single_polygon.py"],
-           "double":["contacts.py", "graph_attributes.py"]}   
+scripts = ["contacts.py", "graph_attributes.py", "movement.py"]  
 
 base_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -20,7 +19,6 @@ df_interventions = pd.read_csv(interventions)
 for i in df_interventions.index:
     location_id = df_interventions.at[i, "location_id"]
     print(f"Running intervention analysis for {location_id}.") 
-    search_type = "polygon_name"
     report_name = df_interventions.at[i, "report_name"]
     control_polygon_name = df_interventions.at[i, "control_polygon"]
     treatment_polygon_name = df_interventions.at[i, "treatment_polygon"]
@@ -33,15 +31,8 @@ for i in df_interventions.index:
     if pd.isnull(end_date):
         end_date = datetime.datetime.now().strftime("%Y-%m-%d")
     
-    if pd.isnull(treatment_polygon_name):
-        print(f"Running scripts for {control_polygon_name} with treatment date {treatment_date}.")
-        script_names = scripts["single"] 
-        exec_parameters = f"{location_id} {report_name} {search_type} {control_polygon_name} {treatment_date} {start_date} {end_date}"
-    else:
-        print(f"Running scripts for {control_polygon_name} and {treatment_polygon_name} with treatment date {treatment_date}.")
-        script_names = scripts["double"] 
-        exec_parameters = f"{location_id} {report_name} {search_type} {control_polygon_name} {treatment_polygon_name} {treatment_date} {start_date} {end_date}"
-
-    for s in script_names:
+    exec_parameters = f"{location_id} {report_name} {search_type} {control_polygon_name} {treatment_polygon_name} {treatment_date} {start_date} {end_date}"
+        
+    for s in scripts:
         print(f" Running {s}")
         ef.excecute_script(scripts_location, s, "python", exec_parameters)

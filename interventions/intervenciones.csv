@@ -1,3 +1,2 @@
 location_id,report_name,control_polygon,treatment_polygon,treatment_date,start_date,end_date
-colombia_cucuta,reporte_cucuta,colombia_cucuta_control_1,colombia_cucuta_control_2,2020-07-15,,
-colombia_cucuta,reporte_cucuta,colombia_cucuta_control_1,,2020-07-15,,
+colombia_palmira_study_1,reporte_palmira,colombia_palmira_study_1,,2020-10-01,2020-02-15,
