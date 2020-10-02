@@ -10,14 +10,15 @@ import matplotlib.pyplot as plt
 from google.cloud import bigquery
 
 # Gets config
-import constants as con
+import config_constants as con
+import constants as const
 
 # Starts the client
 client = bigquery.Client(location="US")
 job_config = bigquery.QueryJobConfig(allow_large_results = True)
 
 # Constants
-indent = con.indent
+indent = const.indent
 WINDOW_SIZE = 7 #days
 COLOR_CTRL = "#79c5b4"
 COLOR_TRT = "#324592"
@@ -54,20 +55,20 @@ treatment_date = sys.argv[5] # treatment_date
 
 db_treatment = DB[treatment_polygon_name]
 
-if len(sys.argv) == 8:
-    start_date = sys.argv[7] 
+if len(sys.argv) == 7:
+    start_date = sys.argv[6] 
     start_date = pd.Timestamp(datetime.datetime.strptime(start_date, '%Y-%m-%d'))
 else:
     start_date = pd.Timestamp(datetime.datetime.strptime("2020-02-01", '%Y-%m-%d'))
 
-if len(sys.argv) == 9:
-    end_date = sys.argv[8]
+if len(sys.argv) == 8:
+    end_date = sys.argv[7]
     end_date = pd.Timestamp(datetime.datetime.strptime(end_date, '%Y-%m-%d'))
 else:
     end_date = pd.Timestamp(datetime.datetime.now())
 
 # export location
-export_folder_location = os.path.join(con.reports_folder_location, report_name, con.figure_folder_name, "contacts")
+export_folder_location = os.path.join(con.reports_folder_location, report_name, con.figure_folder_name)
 if not os.path.exists(export_folder_location):
     os.makedirs(export_folder_location)
     
@@ -76,23 +77,21 @@ treatment_date = pd.Timestamp(datetime.datetime.strptime(treatment_date, '%Y-%m-
 
 sql_0 = f"""
     SELECT *
-    FROM {db_treatment}
-    WHERE ST_DWithin(ST_GeogPoint(lon, lat), (SELECT geometry FROM geo.locations_geometries WHERE location_id="{treatment_polygon_name}"), 1000) 
-        AND date >= "{start_date.strftime("%Y-%m-%d")}" AND date <= "{end_date.strftime("%Y-%m-%d")}"
+    FROM {db_treatment} 
+    WHERE date >= "{start_date.strftime("%Y-%m-%d")}" AND date <= "{end_date.strftime("%Y-%m-%d")}"
     """
 
-# # Make query for treatment
-# print(indent + f"Retreiving treatment contacts between {start_date} and {end_date}.")
-# query_job = client.query(sql_0, job_config=job_config) 
+# Make query for treatment
+print(indent + f"Retreiving treatment contacts between {start_date} and {end_date}.")
+query_job = client.query(sql_0, job_config=job_config) 
 
-# # Return the results as a pandas DataFrame
-# df_edges_treatment = query_job.to_dataframe()
+# Return the results as a pandas DataFrame
+df_edges_treatment = query_job.to_dataframe()
 
-# if df_edges_treatment.empty:
-#     raise Exception("No points found for the given control coordinates")
+if df_edges_treatment.empty:
+    raise Exception("No points found for the given treatment coordinates")
 
-# df_edges_treatment["date"] = pd.to_datetime(df_edges_treatment["date"])    
-df_edges_treatment = pd.read_csv(os.path.join(export_folder_location, "tmp", "df_edges_treatment.csv"), parse_dates=["date"])
+df_edges_treatment["date"] = pd.to_datetime(df_edges_treatment["date"])    
 
 # Get contacts
 df_edges_treatment["contacts_agg"] = 1
@@ -118,27 +117,36 @@ df_plot_hourly_stats_treat = pd.melt(df_hourly_stats_tratment_avg, id_vars=['wee
 
 if control_polygon_name != "None":
     control_flag = True
+    # export location
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}")
+    if not os.path.exists(export_folder_location):
+        os.makedirs(export_folder_location) 
+else:
+    # export location
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}")
+    if not os.path.exists(export_folder_location):
+        os.makedirs(export_folder_location) 
+        
+if control_flag:
     db_control = DB[control_polygon_name]
     
     sql_1 = f"""
         SELECT *
         FROM {db_control}
-        WHERE ST_DWithin(ST_GeogPoint(lon, lat), (SELECT geometry FROM geo.locations_geometries WHERE location_id="{control_polygon_name}"), 1000) 
-            AND date >= "{start_date.strftime("%Y-%m-%d")}" AND date <= "{end_date.strftime("%Y-%m-%d")}"
+        WHERE date >= "{start_date.strftime("%Y-%m-%d")}" AND date <= "{end_date.strftime("%Y-%m-%d")}"
         """
     
-#     # Make query for control 
-#     print(indent + f"Retreiving control contacts between {start_date} and {end_date}.")
-#     query_job = client.query(sql_1, job_config=job_config) 
+    # Make query for control 
+    print(indent + f"Retreiving control contacts between {start_date} and {end_date}.")
+    query_job = client.query(sql_1, job_config=job_config) 
 
-#     # Return the results as a pandas DataFrame
-#     df_edges_control = query_job.to_dataframe()
+    # Return the results as a pandas DataFrame
+    df_edges_control = query_job.to_dataframe()
 
-#     if df_edges_treatment.empty:
-#         raise Exception("No points found for the given treatment coordinates")
+    if df_edges_treatment.empty:
+        raise Exception("No points found for the given treatment coordinates")
 
-#     df_edges_control["date"] = pd.to_datetime(df_edges_control["date"])
-    df_edges_control = pd.read_csv(os.path.join(export_folder_location, "tmp", "df_edges_control.csv"), parse_dates=["date"])
+    df_edges_control["date"] = pd.to_datetime(df_edges_control["date"])
 
     # Get contacts
     df_edges_control["contacts_agg"] = 1
@@ -174,8 +182,7 @@ if control_polygon_name != "None":
         ax.set(xlabel='Semana', ylabel='Hora')
         ax.label_outer()
     print(indent + "\tExporting...")
-    plt.savefig(os.path.join(export_folder_location, f"hourly_stats_{treatment_polygon_name}-{control_polygon_name}.png"))
-    
+    plt.savefig(os.path.join(export_folder_location,"hourly_stats.png"))   
     
 # Remove outliers
 if remove_outliers:
@@ -197,7 +204,7 @@ baseline_treatment = df_contacts_treatment.loc[df_contacts_treatment["date"] < \
 df_contacts_treatment["percentage_change_trtm"] = df_contacts_treatment["contacts_agg"].subtract(baseline_treatment).divide(baseline_treatment)
 
 print(indent + "\tSaving control and treatment dataset.")
-df_contacts_treatment.to_csv(os.path.join(export_folder_location, f"contacts_{treatment_polygon_name}.csv"), index=False)
+df_contacts_treatment.to_csv(os.path.join(export_folder_location, "contacts.csv"), index=False)
 df_contacts = df_contacts_treatment.copy()
     
 if control_flag == False:    
@@ -210,15 +217,14 @@ if control_flag == False:
     ax.fill_between(d, -1, 20, facecolor=COLOR_HIHGLIGH, alpha = 0.25) 
     ax.set(xlabel='Semana', ylabel='Hora')
     print(indent + "\tExporting...")
-    plt.savefig(os.path.join(export_folder_location, f"hourly_stats_{treatment_polygon_name}.png"))
+    plt.savefig(os.path.join(export_folder_location, f"hourly_stats.png"))
 
     # Plot contact change
     print(indent + "\tPlotting...")
-    d = df_contacts.date.values
+    d = pd.date_range(start_date, end_date)
     d = [k for k in d if k >= treatment_date]
     maxy = df_contacts.percentage_change_trtm.max()
     miny = df_contacts.percentage_change_trtm.min()
-    print(d)
     df_contacts_plot = pd.melt(df_contacts, id_vars=['date'], value_vars=['percentage_change_trtm'])
     fig1, ax1 = plt.subplots()
     plt.figure(figsize=(15,8))
@@ -230,7 +236,7 @@ if control_flag == False:
     plt.xlabel("Fecha")
     plt.ylabel("Cambio porcentual")
     print(indent + "\tExporting...")
-    plt.savefig(os.path.join(export_folder_location, f"percent_change_contacts_{treatment_polygon_name}.png"))
+    plt.savefig(os.path.join(export_folder_location, f"percent_change_contacts.png"))
 
 else:
     if remove_outliers:
@@ -249,14 +255,14 @@ else:
     df_contacts_control = df_contacts_control.groupby("date")["contacts_agg"].sum().to_frame().reset_index()
     baseline_control = df_contacts_control.loc[df_contacts_control["date"] < start_date + datetime.timedelta(days = WINDOW_SIZE)]["contacts_agg"].mean()
     df_contacts_control["percentage_change_ctrl"] = df_contacts_control["contacts_agg"].subtract(baseline_control).divide(baseline_control)
-    df_contacts_control.to_csv(os.path.join(export_folder_location, f"contacts_{control_polygon_name}.csv"), index=False)
+    df_contacts_control.to_csv(os.path.join(export_folder_location, f"contacts.csv"), index=False)
     df_contacts = df_contacts_control.merge(df_contacts_treatment, on="date", how="outer").drop(columns=["contacts_agg_x", "contacts_agg_y"])
     
     # Plot contact change
     print(indent + "\tPlotting...")
     d = pd.date_range(start_date, end_date)
     d = [k for k in d if k >= treatment_date]
-    print(d)
+
     maxy = df_contacts.percentage_change_trtm.max()
     miny = df_contacts.percentage_change_trtm.min()
     df_contacts_plot = pd.melt(df_contacts, id_vars=['date'], value_vars=['percentage_change_ctrl', 'percentage_change_trtm'])
@@ -272,4 +278,4 @@ else:
     plt.ylabel("Cambio porcentual")
 
     print(indent + "\tExporting...")
-    plt.savefig(os.path.join(export_folder_location, f"percent_change_contacts_{treatment_polygon_name}-{control_polygon_name}.png"))
+    plt.savefig(os.path.join(export_folder_location, f"percent_change_contacts.png"))

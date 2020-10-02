@@ -10,14 +10,15 @@ import matplotlib.pyplot as plt
 from google.cloud import bigquery
 
 # Gets config
-import constants as con
+import config_constants as con
+import constants as const
 
 # Starts the client
 client = bigquery.Client(location="US")
 job_config = bigquery.QueryJobConfig(allow_large_results = True)
 
 # Constants
-indent = con.indent
+indent = const.indent
 WINDOW_SIZE = 7 #days
 control_flag = False
 
@@ -76,20 +77,20 @@ treatment_polygon_name = sys.argv[3] # treatment_polygon
 control_polygon_name = sys.argv[4] # control_polygon
 treatment_date = sys.argv[5] # treatment_date
     
-if len(sys.argv) == 8:
-    start_date = sys.argv[7] 
+if len(sys.argv) == 7:
+    start_date = sys.argv[6] 
     start_date = pd.Timestamp(datetime.datetime.strptime(start_date, '%Y-%m-%d'))
 else:
     start_date = pd.Timestamp(datetime.datetime.strptime("2020-02-01", '%Y-%m-%d'))
 
-if len(sys.argv) == 9:
-    end_date = sys.argv[8]
+if len(sys.argv) == 8:
+    end_date = sys.argv[7]
     end_date = pd.Timestamp(datetime.datetime.strptime(end_date, '%Y-%m-%d'))
 else:
     end_date = pd.Timestamp(datetime.datetime.now())
 
 # export location
-export_folder_location = os.path.join(con.reports_folder_location, report_name, con.figure_folder_name, "graph_attrs")
+export_folder_location = os.path.join(con.reports_folder_location, report_name, con.figure_folder_name)
 if not os.path.exists(export_folder_location):
     os.makedirs(export_folder_location)
     
@@ -103,21 +104,31 @@ sql_0 = f"""
         AND date >= "{start_date.strftime("%Y-%m-%d")}" AND date <= "{end_date.strftime("%Y-%m-%d")}"
     """
 
-# # Make query for treatment
-# print(indent + f"Retreiving treatment graph-attributes between {start_date} and {end_date}.")
-# query_job = client.query(sql_0, job_config=job_config) 
+# Make query for treatment
+print(indent + f"Retreiving treatment graph-attributes between {start_date} and {end_date}.")
+query_job = client.query(sql_0, job_config=job_config) 
 
-# # Return the results as a pandas DataFrame
-# df_graph_attr_treatment = query_job.to_dataframe()
+# Return the results as a pandas DataFrame
+df_graph_attr_treatment = query_job.to_dataframe()
 
-# if df_graph_attr_treatment.empty:
-#     raise Exception("No graph-attrs found for the given treatment.")
+if df_graph_attr_treatment.empty:
+    raise Exception("No graph-attrs found for the given treatment.")
     
-# df_graph_attr_treatment["date"] = pd.to_datetime(df_graph_attr_treatment["date"])
-df_graph_attr_treatment = pd.read_csv(os.path.join(export_folder_location, "tmp", "df_graph_attr_treatment.csv"), parse_dates=["date"])
+df_graph_attr_treatment["date"] = pd.to_datetime(df_graph_attr_treatment["date"])
 
 if control_polygon_name != "None":
     control_flag = True
+    # export location
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}")
+    if not os.path.exists(export_folder_location):
+        os.makedirs(export_folder_location) 
+else:
+    # export location
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}")
+    if not os.path.exists(export_folder_location):
+        os.makedirs(export_folder_location) 
+
+if control_flag:
     sql_1 = f"""
         SELECT *
         FROM graph_attributes.graph_attributes
@@ -137,7 +148,6 @@ if control_polygon_name != "None":
         control_flag = False
     else:
         df_graph_attr_control["date"] = pd.to_datetime(df_graph_attr_control["date"])
-        df_graph_attr_control.to_csv(os.path.join(export_folder_location, "tmp", "df_graph_attr_control.csv"), index=False)
 
         df_graph_attr_control.drop(columns=["type"], inplace=True)
         df_graph_attr_control_plt = df_graph_attr_control.pivot_table(values='attribute_value', index='date', columns='attribute_name', aggfunc='first')
@@ -151,9 +161,12 @@ df_graph_attr_treatment_plt = df_graph_attr_treatment.pivot_table(values='attrib
 df_graph_attr_treatment_plt.reset_index(inplace=True)
 df_graph_attr_treatment_plt.sort_values(by="date", inplace=True)
 
-
-attrs = list(set(df_graph_attr_treatment_plt.columns) - set(["date"]))
-
+if control_flag:
+    attrs = set(df_graph_attr_treatment_plt.columns).intersection(set(df_graph_attr_control_plt.columns))
+    attrs = list(attrs - set(["date"]))
+else:
+    attrs = list(set(df_graph_attr_treatment_plt.columns) - set(["date"]))
+    
 print(indent + f"Plotting...")
 for attr in attrs:    
     print(indent + f"\t{attr}")
@@ -167,12 +180,11 @@ for attr in attrs:
     fig.set_figheight(5)
     fig.set_figwidth(15)
     ax.plot(df_graph_attr_treatment_plt["date"], df_graph_attr_treatment_plt[attr], linewidth=1, color=COLOR_TRT, label=f"{treatment_polygon_name} (tratamiento)")
-    fig_name = f"{attr}_{treatment_polygon_name}.png"
+    fig_name = f"{attr}.png"
     if control_flag:
         maxy = max(df_graph_attr_control_plt[attr].max(), df_graph_attr_treatment_plt[attr].max())
         miny = min(df_graph_attr_control_plt[attr].min(), df_graph_attr_treatment_plt[attr].min())
         ax.plot(df_graph_attr_control_plt["date"], df_graph_attr_control_plt[attr], linewidth=1, color=COLOR_CTRL, label=f"{control_polygon_name} (control)")
-        fig_name = f"{attr}_{treatment_polygon_name}-{control_polygon_name}.png"
     ax.fill_between(d, maxy, miny, facecolor=COLOR_HIHGLIGH, alpha = 0.25) 
     ax.axvline(treatment_date, linestyle="--", color=COLOR_HIHGLIGH, linewidth=1)
     ax.legend()

@@ -10,14 +10,15 @@ import matplotlib.pyplot as plt
 from google.cloud import bigquery
 
 # Gets config
-import constants as con
+import config_constants as con
+import constants as const
 
 # Starts the client
 client = bigquery.Client(location="US")
 job_config = bigquery.QueryJobConfig(allow_large_results = True)
 
 # Constants
-indent = con.indent
+indent = const.indent
 WINDOW_SIZE = 7 #days
 translate_title = {"all_devices": "Número de dispositivos", 
             "devices_with_movement": "Número de dispositivos con movimiento",
@@ -70,7 +71,7 @@ control_polygon_name = sys.argv[4] # control_polygon_name
 treatment_date = sys.argv[5] # treatment_date
     
 # export location
-export_folder_location = os.path.join(con.reports_folder_location, report_name, con.figure_folder_name, "movement")
+export_folder_location = os.path.join(con.reports_folder_location, report_name, con.figure_folder_name)
 if not os.path.exists(export_folder_location):
     os.makedirs(export_folder_location)    
     
@@ -111,6 +112,18 @@ df_mov_treatment.sort_values(by="date", inplace=True)
 
 if control_polygon_name != "None":
     control_flag = True
+    # export location
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}")
+    if not os.path.exists(export_folder_location):
+        os.makedirs(export_folder_location) 
+else:
+    # export location
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}")
+    if not os.path.exists(export_folder_location):
+        os.makedirs(export_folder_location) 
+
+
+if control_flag:
     sql_1 = f"""
         SELECT *
         FROM graph_attributes.graph_movement
@@ -145,12 +158,11 @@ for attr in attrs:
     fig.set_figheight(5)
     fig.set_figwidth(15)
     ax.plot(df_mov_treatment["date"], df_mov_treatment[attr], linewidth=1, color=COLOR_TRT, label=f"{treatment_polygon_name} (tratamiento)")
-    fig_name = f"{attr}_{treatment_polygon_name}.png"
+    fig_name = f"{attr}.png"
     if control_flag:
         maxy = max(df_mov_control[attr].max(), df_mov_treatment[attr].max())
         miny = min(df_mov_control[attr].min(), df_mov_treatment[attr].min())
         ax.plot(df_mov_control["date"], df_mov_control[attr], linewidth=1, color=COLOR_CTRL, label=f"{control_polygon_name} (control)")
-        fig_name = f"{attr}_{treatment_polygon_name}-{control_polygon_name}.png"
     ax.fill_between(d, maxy, miny, facecolor=COLOR_HIHGLIGH, alpha = 0.25) 
     ax.axvline(treatment_date, linestyle="--", color=COLOR_HIHGLIGH, linewidth=1)
     ax.legend()
