@@ -49,7 +49,7 @@ def main():
         print(f'      Calculating for {row.location_id} ({i} of {df_locations.shape[0]}), from: {start_date} to {end_date}')
 
         current_date = start_date
-        while current_date <= end_date:
+        while current_date < end_date:
             
             date_string = current_date.strftime( utils.date_format)
             

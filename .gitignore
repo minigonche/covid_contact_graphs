@@ -1,7 +1,10 @@
 # enviorment
 env/
+
+# Others
 edge_detection/
 cases_uploads/
+polygons_uploads/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -53,3 +56,6 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+
+# Mac
+*.DS_Store
