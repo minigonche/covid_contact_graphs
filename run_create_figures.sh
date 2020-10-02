@@ -8,13 +8,16 @@ else
         echo 'Cucuta'
         # Cucuta
         # Transits Housing
-        #python figure_generation/scripts/transits_housing_plots.py reporte_norte_de_santander 30 colombia_cucuta
+        python figure_generation/scripts/transits_housing_plots.py reporte_norte_de_santander 30 colombia_cucuta
 
         # Movement Plots
-        #python figure_generation/scripts/movement_plots.py reporte_norte_de_santander 30 colombia_cucuta_comuna_*
+        python figure_generation/scripts/movement_plots.py reporte_norte_de_santander 30 colombia_cucuta_comuna_*
 
         # Centrality
-        #python figure_generation/scripts/centrality_housing_plots.py reporte_norte_de_santander colombia_cucuta pagerank_centrality 30 5000 2
+        python figure_generation/scripts/centrality_housing_plots.py reporte_norte_de_santander colombia_cucuta pagerank_centrality 30 5000 2
+        
+        # Edgelist
+        python figure_generation/scripts/edgelist_plots.py reporte_norte_de_santander colombia_cucuta 30 3        
     
     elif [ "$1" = "ALL" ] || [ "$1" = "palmira" ] 
         then
@@ -22,28 +25,28 @@ else
 
         # Plamira
         # Transits Housing
-        #python figure_generation/scripts/transits_housing_plots.py reporte_palmira 30 colombia_palmira
+        python figure_generation/scripts/transits_housing_plots.py reporte_palmira 30 colombia_palmira
 
         # Movement Plots
-        #python figure_generation/scripts/movement_plots.py reporte_palmira 30 colombia_palmira_comuna_*
+        python figure_generation/scripts/movement_plots.py reporte_palmira 30 colombia_palmira_comuna_*
 
         # Centrality
-        #python figure_generation/scripts/centrality_housing_plots.py reporte_palmira colombia_palmira pagerank_centrality 30 1000 2.5
+        python figure_generation/scripts/centrality_housing_plots.py reporte_palmira colombia_palmira pagerank_centrality 30 1000 2.5
 
         # Edgelist
-        #python figure_generation/scripts/edgelist_plots.py reporte_palmira colombia_palmira 30 5
+        python figure_generation/scripts/edgelist_plots.py reporte_palmira colombia_palmira 30 5
 
     elif [ "$1" = "ALL" ] || [ "$1" = "ibague" ] 
         then
         echo 'Ibague'
         # Transits Housing
-        #python figure_generation/scripts/transits_housing_plots.py reporte_tolima 30 colombia_ibague
+        python figure_generation/scripts/transits_housing_plots.py reporte_tolima 30 colombia_ibague
 
         # Centrality
-        #python figure_generation/scripts/centrality_housing_plots.py reporte_tolima colombia_ibague pagerank_centrality 30 5000 2
+        python figure_generation/scripts/centrality_housing_plots.py reporte_tolima colombia_ibague pagerank_centrality 30 5000 2
 
         # Edgelist
-        #python figure_generation/scripts/edgelist_plots.py reporte_tolima colombia_ibague 30 2
+        python figure_generation/scripts/edgelist_plots.py reporte_tolima colombia_ibague 30 2
 
     elif [ "$1" = "ALL" ] || [ "$1" = "armenia" ] 
         then
