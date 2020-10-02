@@ -119,12 +119,12 @@ df_graph_attr_treatment["date"] = pd.to_datetime(df_graph_attr_treatment["date"]
 if control_polygon_name != "None":
     control_flag = True
     # export location
-    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}")
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}", "graph_attr")
     if not os.path.exists(export_folder_location):
         os.makedirs(export_folder_location) 
 else:
     # export location
-    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}")
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}", "graph_attr")
     if not os.path.exists(export_folder_location):
         os.makedirs(export_folder_location) 
 

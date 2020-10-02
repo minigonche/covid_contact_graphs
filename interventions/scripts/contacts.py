@@ -118,12 +118,12 @@ df_plot_hourly_stats_treat = pd.melt(df_hourly_stats_tratment_avg, id_vars=['wee
 if control_polygon_name != "None":
     control_flag = True
     # export location
-    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}")
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}", "contacts")
     if not os.path.exists(export_folder_location):
         os.makedirs(export_folder_location) 
 else:
     # export location
-    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}")
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}", "contacts")
     if not os.path.exists(export_folder_location):
         os.makedirs(export_folder_location) 
         
