@@ -5,6 +5,7 @@ from graph_attribute_generic import GenericGraphAttribute
 import pandas as pd
 import numpy as np
 import utils
+import positive_db_functions as pos_fun
 
 attribute_name = 'personalized_pagerank_gini_index'
 
@@ -20,10 +21,12 @@ class GraphPersonalizedPageRankGini(GenericGraphAttribute):
     def __init__(self):
         # Initilizes the super class
         GenericGraphAttribute.__init__(self, attribute_name)
-                        
+        
         self.df_codes =  utils.get_geo_codes(self.client, location_id = None)
         self.df_codes.index = self.df_codes.location_id
-                
+        
+        # Gets the max date of symptoms for each supported location        
+        self.max_dates = pos_fun.get_positive_max_dates(self.client)               
 
     def compute_attribute(self, nodes, edges):
         '''
@@ -90,9 +93,13 @@ class GraphPersonalizedPageRankGini(GenericGraphAttribute):
         return(df_response)
     
     
-
+    
+    
     def location_id_supported(self, location_id):
         '''
+        OVERWRITTEN
+        # ---------------
+        
         Method that determines if the attribute is supported for the location_id (graph).
         The default implementation is to return True.
 
@@ -107,12 +114,34 @@ class GraphPersonalizedPageRankGini(GenericGraphAttribute):
         returns
             Boolean
         '''
-        
+
         if location_id == 'colombia_university_rosario_campus_norte':
             return(False)
         
-        in_bogota = self.df_codes.loc[[location_id]].code_depto.apply(lambda c: c not in utils.bogota_codes).sum() == 0
-        
-        return(in_bogota)
+        return( pos_fun.has_positives_database(self.client, location_id, self.df_codes))
     
+
+        
+    def location_id_supported_on_date(self, location_id, current_date):
+        '''
+        OVERWRITTEN
+        # --------------
+        
+        Method that determines if the attribute is supported for the location_id (graph) on a specific date
+        The default implementation is to return True if the current date is equal or larger that the starting_date and is not inside hell week
+        Overwrite this method in case the attribute is not supported for a certain location_id (or several) at a particular date
+    
+        NOTE: This method is called several times inside a loop. Make sure you don't acces any expensive resources in the implementation.
+        
+        params
+            - location_id (str)
+            - current_date (pd.datetime): the current datetime
+
+        returns
+            Boolean
+        '''
+        
+        up_to_date = pos_fun.positives_up_to_date(self.client, location_id, current_date, self.df_codes, self.max_dates)
+        
+        return(up_to_date)  
     

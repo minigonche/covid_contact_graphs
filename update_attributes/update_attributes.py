@@ -92,9 +92,12 @@ def main():
     # Excecutes all the Node attributes
     
     start_time = time.time()
+    
+    j = 0
     for n_att in all_node_attributes:
         
-        print(f'   Coputing { n_att.attribute_name}.')
+        j += 1
+        print(f'   Coputing { n_att.attribute_name}. ({j} of {len(all_node_attributes)})')
         df_att = df_att_all[df_att_all.attribute_name == n_att.attribute_name].copy()
 
         # Merges
@@ -146,9 +149,12 @@ def main():
 
     print(f'Computing {len(all_graph_attributes)} Graphs Attributes')
     # Excecutes all the graph attributes
+    
+    j = 0
     for g_att in all_graph_attributes:
         
-        print(f'   Computing { g_att.attribute_name}.')
+        j += 1
+        print(f'   Computing { g_att.attribute_name} ({j} of {len(all_graph_attributes)})')
         df_att = df_att_all[df_att_all.attribute_name == g_att.attribute_name].copy()
 
         # Merges

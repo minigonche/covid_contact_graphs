@@ -187,9 +187,9 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
             Boolean
         '''
         
-        uo_to_date = pos_fun.positives_up_to_date(self.client, location_id, current_date, self.df_codes, self.max_dates)
+        up_to_date = pos_fun.positives_up_to_date(self.client, location_id, current_date, self.df_codes, self.max_dates)
         
-        return(uo_to_date)    
+        return(up_to_date)  
 
 
     

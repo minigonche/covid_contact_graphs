@@ -31,6 +31,7 @@ DB = {"colombia_palmira_study_1": "edgelists_palmira_study.colombia_palmira_stud
       "colombia_palmira_study_3": "edgelists_palmira_study.colombia_palmira_study_3",
       "colombia_palmira_study_4": "edgelists_palmira_study.colombia_palmira_study_4",
       "colombia_palmira_study_5": "edgelists_palmira_study.colombia_palmira_study_5",
+      "colombia_palmira_study_6": "edgelists_palmira_study.colombia_palmira_study_6",      
       "colombia_cucuta_control_1": "edgelists_cucuta_control.colombia_cucuta_control_1",
       "colombia_cucuta_control_2": "edgelists_cucuta_control.colombia_cucuta_control_2",
      }

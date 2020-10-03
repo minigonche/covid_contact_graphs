@@ -3,14 +3,16 @@ import sys
 import datetime
 import numpy as np
 import pandas as pd
-
+import sys
 import utils.excecution_functions as ef
-import config as con
 
 # Constants
 scripts = ["contacts.py", "graph_attributes.py", "movement.py"]  
 
 base_path = os.path.dirname(os.path.realpath(__file__))
+
+sys.path.append(base_path)
+
 
 interventions = os.path.join(base_path, "intervenciones.csv")
 scripts_location = os.path.join(base_path, "scripts")
