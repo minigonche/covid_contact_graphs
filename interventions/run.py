@@ -3,16 +3,13 @@ import sys
 import datetime
 import numpy as np
 import pandas as pd
-import sys
+
 import utils.excecution_functions as ef
+import config_constants as con
 
 # Constants
-scripts = ["contacts.py", "graph_attributes.py", "movement.py"]  
-
+scripts = ["movement.py", "graph_attributes.py", "contacts.py"]  
 base_path = os.path.dirname(os.path.realpath(__file__))
-
-sys.path.append(base_path)
-
 
 interventions = os.path.join(base_path, "intervenciones.csv")
 scripts_location = os.path.join(base_path, "scripts")
@@ -31,10 +28,20 @@ for i in df_interventions.index:
         start_date = "2020-02-01"
     if pd.isnull(end_date):
         end_date = datetime.datetime.now().strftime("%Y-%m-%d")
-        
+    
     print(f"Running intervention analysis for {control_polygon_name}, between: {start_date} and {end_date}.")
     exec_parameters = f"{location_id} {report_name} {treatment_polygon_name} {control_polygon_name} {treatment_date} {start_date} {end_date}"
         
     for s in scripts:
         print(f" Running {s}")
         ef.excecute_script(scripts_location, s, "python", exec_parameters)
+    
+#     if control_polygon_name != "None":    
+#         export_folder_location = os.path.join(con.reports_folder_location, \
+#                                               report_name, con.figure_folder_name, \
+#                                               f"{treatment_polygon_name}-{control_polygon_name}", "diff-diff")
+#         print(f" Running diff-diff for {treatment_polygon_name}.")
+#         print(f"\tUsing {control_polygon_name} as control and {treatment_date} as treatment date.")
+#         exec_parameters = f"{export_folder_location} {treatment_date}"
+#         ef.excecute_script(scripts_location, "diff-diff.py", "python", exec_parameters) 
+    

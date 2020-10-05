@@ -9,6 +9,9 @@ from scipy.stats import zscore
 import matplotlib.pyplot as plt
 from google.cloud import bigquery
 
+# Local funcitons
+import utils.general_functions as ge
+
 # Gets config
 import config_constants as con
 import constants as const
@@ -21,38 +24,29 @@ job_config = bigquery.QueryJobConfig(allow_large_results = True)
 indent = const.indent
 WINDOW_SIZE = 7 #days
 control_flag = False
+DIFFDIFF_CODE = const.diffdiff_codes["graph_attributes"]
 
-translate_title = {"eigenvector_gini_index": "Índice Gini de los vectores própios", 
-            "graph_num_edges": "Número de aristas en el grafo",
-            "graph_size": "Tamaño del grafo",
-            "graph_transitivity": "Transitividad del grafo",
-            "largest_eigenvalue_unweighted": "Mayor valor própio (sin ponderar)",
-            "largest_eigenvalue_weighted": "Mayor valor própio (ponderado)",
-            "number_of_cases_accumulated": "Número de casos acumulados",
-            "number_of_contacts": "Número de contactos",
-            "pagerank_gini_index":"Índice Gini del PageRank",
-            "personalized_pagerank_gini_index":"Índice Gini del PageRank Personalizado",
-            "powerlaw_degree_alpha": "",
-            "powerlaw_degree_is_dist": "",
-            "powerlaw_degree_ks_statistic": "",
-            "powerlaw_degree_p_value": ""}
+# Get translation table
+sql = f"""
+    SELECT *
+    FROM graph_attributes.attribute_names 
+    """
 
+query_job = client.query(sql, job_config=job_config) 
+df_translations = query_job.to_dataframe()
 
+df_translations.set_index(["type", "attribute_name"], inplace=True)
 
-translate_ylabel = {"eigenvector_gini_index": "Índice Gini de los vectores própios", 
-            "graph_num_edges": "Número de aristas",
-            "graph_size": "Tamaño",
-            "graph_transitivity": "Transitividad",
-            "largest_eigenvalue_unweighted": "Valor própio",
-            "largest_eigenvalue_weighted": "Valor própio",
-            "number_of_cases_accumulated": "Número de casos",
-            "number_of_contacts": "Número de contactos",
-            "pagerank_gini_index":"Índice Gini",
-            "personalized_pagerank_gini_index":"Índice Gini Personalizado",
-            "powerlaw_degree_alpha": "",
-            "powerlaw_degree_is_dist": "",
-            "powerlaw_degree_ks_statistic": "",
-            "powerlaw_degree_p_value": ""}
+def translate(attr_name):
+    translation = df_translations.iloc[(df_translations.index.get_level_values('type') == "graph_attributes") \
+                                       & (df_translations.index.get_level_values('attribute_name') == attr_name)]["translated_name"]
+
+    return translation.values[0]
+
+def get_yaxis_name(attr_name):
+    yaxis_name = df_translations.iloc[(df_translations.index.get_level_values('type') == "graph_attributes") \
+                                       & (df_translations.index.get_level_values('attribute_name') == attr_name)]["yaxis_name"]
+    return yaxis_name.values[0]
 
 
 COLOR_CTRL = "#79c5b4"
@@ -99,6 +93,23 @@ if not os.path.exists(export_folder_location):
 # Convert dates to datetime
 treatment_date = pd.Timestamp(datetime.datetime.strptime(treatment_date, '%Y-%m-%d'))
 
+# Get dataset details
+sql = f"""
+    SELECT *
+    FROM geo.locations_geometries 
+    WHERE location_id="{treatment_polygon_name}"
+    """
+
+query_job = client.query(sql, job_config=job_config) 
+df_database = query_job.to_dataframe()
+if df_database.empty:
+    raise Exception(f"No dataset matches the location_id {treatment_polygon_name}.")
+if df_database.shape[0] > 1:
+    raise Exception(f"Multiple datasets found for location_id {treatment_polygon_name}.")
+data_set_trtm = df_database.at[0, "dataset"]
+data_name_trtm = df_database.at[0, "name"]
+data_name_trtm = ge.clean_for_publication(data_name_trtm)
+
 sql_0 = f"""
     SELECT *
     FROM graph_attributes.graph_attributes
@@ -120,16 +131,37 @@ df_graph_attr_treatment["date"] = pd.to_datetime(df_graph_attr_treatment["date"]
 
 if control_polygon_name != "None":
     control_flag = True
+    
+    sql = f"""
+    SELECT *
+    FROM geo.locations_geometries 
+    WHERE location_id="{control_polygon_name}"
+    """
+
+    query_job = client.query(sql, job_config=job_config) 
+    df_database = query_job.to_dataframe()
+    if df_database.empty:
+        raise Exception(f"No dataset matches the location_id {control_polygon_name}.")
+    if df_database.shape[0] > 1:
+        raise Exception(f"Multiple datasets found for location_id {control_polygon_name}.")
+    data_set_ctrl = df_database.at[0, "dataset"]
+    data_name_ctrl = df_database.at[0, "name"]
+    data_name_ctrl = ge.clean_for_publication(data_name_ctrl)
+    
     # export location
+    export_folder_location_diffdiff = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}", "diff-diff")
     export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}", "graph_attr")
     if not os.path.exists(export_folder_location):
         os.makedirs(export_folder_location) 
+    if not os.path.exists(export_folder_location_diffdiff):
+        os.makedirs(export_folder_location_diffdiff) 
 else:
     # export location
     export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}", "graph_attr")
     if not os.path.exists(export_folder_location):
         os.makedirs(export_folder_location) 
 
+        
 if control_flag:
     sql_1 = f"""
         SELECT *
@@ -157,7 +189,6 @@ if control_flag:
         df_graph_attr_control_plt.sort_values(by="date", inplace=True)
     
 # Plotting
-print(indent + "\tPlotting...")
 df_graph_attr_treatment.drop(columns=["type"], inplace=True)
 df_graph_attr_treatment_plt = df_graph_attr_treatment.pivot_table(values='attribute_value', index='date', columns='attribute_name', aggfunc='first')
 df_graph_attr_treatment_plt.reset_index(inplace=True)
@@ -166,6 +197,20 @@ df_graph_attr_treatment_plt.sort_values(by="date", inplace=True)
 if control_flag:
     attrs = set(df_graph_attr_treatment_plt.columns).intersection(set(df_graph_attr_control_plt.columns))
     attrs = list(attrs - set(["date"]))
+    
+    # Write csv for diff-diff
+    print(indent + f"Writing diff-diff file.")
+    rename_cols_ctrl = {}
+    rename_cols_trtm = {}
+    for i in range(len(attrs)):
+        attr = attrs[i] 
+        ctrl_column = f"{DIFFDIFF_CODE}-{i}-{attr}-ctrl"
+        trtm_column = f"{DIFFDIFF_CODE}-{i}-{attr}-trtm"
+        rename_cols_ctrl[attr] = ctrl_column
+        rename_cols_trtm[attr] = trtm_column
+    df_diff_diff = df_graph_attr_control_plt.rename(columns=rename_cols_ctrl) \
+        .merge(df_graph_attr_treatment_plt.rename(columns=rename_cols_trtm), on="date", how="outer")
+    df_diff_diff.to_csv(os.path.join(export_folder_location_diffdiff, f"graph_attributes.csv"), index=False)
 else:
     attrs = list(set(df_graph_attr_treatment_plt.columns) - set(["date"]))
     
@@ -173,20 +218,20 @@ print(indent + f"Plotting...")
 for attr in attrs:    
     print(indent + f"\t{attr}")
     fig, ax = plt.subplots() 
-    ax.set_title(translate_title[attr])
+    ax.set_title(translate(attr))
     ax.set_xlabel("Fecha")
-    ax.set_ylabel(translate_ylabel[attr])
+    ax.set_ylabel(get_yaxis_name(attr))
     maxy = df_graph_attr_treatment_plt[attr].max()
     miny = df_graph_attr_treatment_plt[attr].min()
     d = pd.date_range(treatment_date, end_date).values
     fig.set_figheight(5)
     fig.set_figwidth(15)
-    ax.plot(df_graph_attr_treatment_plt["date"], df_graph_attr_treatment_plt[attr], linewidth=1, color=COLOR_TRT, label=f"{treatment_polygon_name} (tratamiento)")
+    ax.plot(df_graph_attr_treatment_plt["date"], df_graph_attr_treatment_plt[attr], linewidth=1, color=COLOR_TRT, label=f"{data_name_trtm} (tratamiento)")
     fig_name = f"{attr}.png"
     if control_flag:
         maxy = max(df_graph_attr_control_plt[attr].max(), df_graph_attr_treatment_plt[attr].max())
         miny = min(df_graph_attr_control_plt[attr].min(), df_graph_attr_treatment_plt[attr].min())
-        ax.plot(df_graph_attr_control_plt["date"], df_graph_attr_control_plt[attr], linewidth=1, color=COLOR_CTRL, label=f"{control_polygon_name} (control)")
+        ax.plot(df_graph_attr_control_plt["date"], df_graph_attr_control_plt[attr], linewidth=1, color=COLOR_CTRL, label=f"{data_name_ctrl} (control)")
     ax.fill_between(d, maxy, miny, facecolor=COLOR_HIHGLIGH, alpha = 0.25) 
     ax.axvline(treatment_date, linestyle="--", color=COLOR_HIHGLIGH, linewidth=1)
     ax.legend()
@@ -194,33 +239,4 @@ for attr in attrs:
 print(indent + "Exporting...")
 
 
-
-# ['graph_num_edges', 'eigenvector_gini_index', 'graph_transitivity', 'powerlaw_degree_ks_statistic', 'powerlaw_degree_alpha', 'pagerank_gini_index', 'graph_size', 'powerlaw_degree_p_value', 'powerlaw_degree_is_dist']
-
-# subplotsize=[10.,15.]
-# margin_left = 1.0
-# margin_right = 1.0
-# margin_top = 1.0
-# margin_bottom = 1.0
-# figuresize = [margin_left + subplotsize[0] + margin_right, margin_top + subplotsize[1] + margin_bottom]
-# left = 0.5*(2.-subplotsize[0]/figuresize[0])
-# right = 2.-left
-# bottom = 0.5*(1.-subplotsize[1]/figuresize[1])
-# top = 1.-bottom
-
-# fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7, ax8, ax9) = plt.subplots(9, figsize=(figuresize[0],figuresize[1]))
-# fig.subplots_adjust(left=left,right=right,bottom=bottom,top=top)
-# fig.suptitle('Graph Attributes')
-# fig.tight_layout()
-# axes = fig.get_axes()
-# for i in range(len(attrs)):
-#     ax = axes[i]
-#     attr = attrs[i]
-#     ax.plot(df_graph_attr_control_plt.date, df_graph_attr_control_plt[attr], label="control")
-#     ax.plot(df_graph_attr_treatment_plt.date, df_graph_attr_treatment_plt[attr], label="treatment")
-#     ax.axvline(x=treatment_date, label="Intervención", color="grey", linestyle='--')
-#     ax.set_ylabel(attr)
-    
-# print(indent + "\tExporting...")
-# fig.savefig(os.path.join(export_folder_location, f"attrs-{control_polygon_name}-{treatment_polygon_name}.png"))
 

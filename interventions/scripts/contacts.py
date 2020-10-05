@@ -9,6 +9,9 @@ from scipy.stats import zscore
 import matplotlib.pyplot as plt
 from google.cloud import bigquery
 
+# Local funcitons
+import utils.general_functions as ge
+
 # Gets config
 import config_constants as con
 import constants as const
@@ -25,16 +28,8 @@ COLOR_TRT = "#324592"
 COLOR_HIHGLIGH = '#ff8c65'
 control_flag = False
 remove_outliers = False
+DIFFDIFF_CODE = const.diffdiff_codes["contacts"]
 
-DB = {"colombia_palmira_study_1": "edgelists_palmira_study.colombia_palmira_study_1",
-      "colombia_palmira_study_2": "edgelists_palmira_study.colombia_palmira_study_2",
-      "colombia_palmira_study_3": "edgelists_palmira_study.colombia_palmira_study_3",
-      "colombia_palmira_study_4": "edgelists_palmira_study.colombia_palmira_study_4",
-      "colombia_palmira_study_5": "edgelists_palmira_study.colombia_palmira_study_5",
-      "colombia_palmira_study_6": "edgelists_palmira_study.colombia_palmira_study_6",      
-      "colombia_cucuta_control_1": "edgelists_cucuta_control.colombia_cucuta_control_1",
-      "colombia_cucuta_control_2": "edgelists_cucuta_control.colombia_cucuta_control_2",
-     }
 
 if len(sys.argv) <= 4:
     print(indent + "This scripts runs with the following args:")
@@ -54,7 +49,22 @@ treatment_polygon_name = sys.argv[3] # treatment_polygon
 control_polygon_name = sys.argv[4] # control_polygon
 treatment_date = sys.argv[5] # treatment_date
 
-db_treatment = DB[treatment_polygon_name]
+# Get dataset details
+sql = f"""
+    SELECT *
+    FROM geo.locations_geometries 
+    WHERE location_id="{treatment_polygon_name}"
+    """
+
+query_job = client.query(sql, job_config=job_config) 
+df_database = query_job.to_dataframe()
+if df_database.empty:
+    raise Exception(f"No dataset matches the location_id {treatment_polygon_name}.")
+if df_database.shape[0] > 1:
+    raise Exception(f"Multiple datasets found for location_id {treatment_polygon_name}.")
+data_set_trtm = df_database.at[0, "dataset"]
+data_name_trtm = df_database.at[0, "name"]
+data_name_trtm = ge.clean_for_publication(data_name_trtm)
 
 if len(sys.argv) == 8:
     start_date = sys.argv[6] 
@@ -78,7 +88,7 @@ treatment_date = pd.Timestamp(datetime.datetime.strptime(treatment_date, '%Y-%m-
 
 sql_0 = f"""
     SELECT *
-    FROM {db_treatment} 
+    FROM {data_set_trtm}.{treatment_polygon_name} 
     WHERE date >= "{start_date.strftime("%Y-%m-%d")}" AND date <= "{end_date.strftime("%Y-%m-%d")}"
     """
 
@@ -119,7 +129,8 @@ df_plot_hourly_stats_treat = pd.melt(df_hourly_stats_tratment_avg, id_vars=['wee
 if control_polygon_name != "None":
     control_flag = True
     # export location
-    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}", "contacts")
+    export_folder_location_diffdiff = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}", "diff-diff")
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}", "contacts")    
     if not os.path.exists(export_folder_location):
         os.makedirs(export_folder_location) 
 else:
@@ -129,11 +140,25 @@ else:
         os.makedirs(export_folder_location) 
         
 if control_flag:
-    db_control = DB[control_polygon_name]
+    sql = f"""
+    SELECT *
+    FROM geo.locations_geometries 
+    WHERE location_id="{control_polygon_name}"
+    """
+
+    query_job = client.query(sql, job_config=job_config) 
+    df_database = query_job.to_dataframe()
+    if df_database.empty:
+        raise Exception(f"No dataset matches the location_id {control_polygon_name}.")
+    if df_database.shape[0] > 1:
+        raise Exception(f"Multiple datasets found for location_id {control_polygon_name}.")
+    data_set_ctrl = df_database.at[0, "dataset"]
+    data_name_ctrl = df_database.at[0, "name"]
+    data_name_ctrl = ge.clean_for_publication(data_name_ctrl)
     
     sql_1 = f"""
         SELECT *
-        FROM {db_control}
+        FROM {data_set_ctrl}.{control_polygon_name} 
         WHERE date >= "{start_date.strftime("%Y-%m-%d")}" AND date <= "{end_date.strftime("%Y-%m-%d")}"
         """
     
@@ -226,11 +251,13 @@ if control_flag == False:
     d = [k for k in d if k >= treatment_date]
     maxy = df_contacts.percentage_change_trtm.max()
     miny = df_contacts.percentage_change_trtm.min()
-    df_contacts_plot = pd.melt(df_contacts, id_vars=['date'], value_vars=['percentage_change_trtm'])
+    column_trtm = f"Cambio porcentual {data_name_trtm}"
+    df_contacts.rename(columns={"percentage_change_trtm": column_trtm}, inplace=True)
+    df_contacts_plot = pd.melt(df_contacts, id_vars=['date'], value_vars=[column_trtm])
     fig1, ax1 = plt.subplots()
     plt.figure(figsize=(15,8))
     sns.lineplot(data=df_contacts_plot, x="date", y="value", hue="variable", palette="Set2")
-    plt.suptitle("Cambio porcentual de contactos", fontsize=18)
+    plt.suptitle(f"Cambio porcentual de contactos", fontsize=18)
     plt.title(f"Con respecto a la semana del {start_date.strftime('%Y-%m-%d')}", fontsize=10)
     plt.fill_between(d, miny, maxy, facecolor=COLOR_HIHGLIGH, alpha = 0.25)
     plt.vlines(x=treatment_date, ymin=miny, ymax=maxy, label="Intervención", color=COLOR_HIHGLIGH, linestyles='dashed')
@@ -256,8 +283,15 @@ else:
     df_contacts_control = df_contacts_control.groupby("date")["contacts_agg"].sum().to_frame().reset_index()
     baseline_control = df_contacts_control.loc[df_contacts_control["date"] < start_date + datetime.timedelta(days = WINDOW_SIZE)]["contacts_agg"].mean()
     df_contacts_control["percentage_change_ctrl"] = df_contacts_control["contacts_agg"].subtract(baseline_control).divide(baseline_control)
-    df_contacts_control.to_csv(os.path.join(export_folder_location, f"contacts.csv"), index=False)
     df_contacts = df_contacts_control.merge(df_contacts_treatment, on="date", how="outer").drop(columns=["contacts_agg_x", "contacts_agg_y"])
+    
+    # Write csv for diff-diff
+    print(indent + f"Writing diff-diff file.")
+    ctrl_column = f"{DIFFDIFF_CODE}-1-contacts_percentage_change-ctrl"
+    trtm_column = f"{DIFFDIFF_CODE}-1-contacts_percentage_change-trtm"
+    df_contacts.rename(columns={"percentage_change_ctrl":ctrl_column, \
+                                "percentage_change_trtm":trtm_column}).to_csv(
+        os.path.join(export_folder_location_diffdiff, f"contacts.csv"), index=False)
     
     # Plot contact change
     print(indent + "\tPlotting...")
@@ -266,7 +300,11 @@ else:
 
     maxy = df_contacts.percentage_change_trtm.max()
     miny = df_contacts.percentage_change_trtm.min()
-    df_contacts_plot = pd.melt(df_contacts, id_vars=['date'], value_vars=['percentage_change_ctrl', 'percentage_change_trtm'])
+    column_ctrl = f"Cambio porcentual {data_name_ctrl} (control)"
+    column_trtm = f"Cambio porcentual {data_name_trtm} (tratamiento)"
+    df_contacts.rename(columns={"percentage_change_trtm": column_trtm, 
+                                "percentage_change_ctrl": column_ctrl}, inplace=True)
+    df_contacts_plot = pd.melt(df_contacts, id_vars=['date'], value_vars=[column_ctrl, column_trtm])
 
     fig1, ax1 = plt.subplots()
     plt.figure(figsize=(15,8))
