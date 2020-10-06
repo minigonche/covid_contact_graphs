@@ -1,6 +1,9 @@
 # enviorment
 env/
 
+# Configuration
+interventions/config_constants.py
+
 # Others
 edge_detection/
 cases_uploads/
