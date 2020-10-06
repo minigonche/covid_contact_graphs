@@ -7,10 +7,15 @@ import pandas as pd
 import seaborn as sns
 from scipy.stats import zscore
 import matplotlib.pyplot as plt
+from google.cloud import bigquery
 
 # Gets config
 import config_constants as con
 import constants as const
+
+# Starts the client
+client = bigquery.Client(location="US")
+job_config = bigquery.QueryJobConfig(allow_large_results = True)
 
 # Constants
 DIFFDIFF_CODES = const.diffdiff_codes
@@ -22,9 +27,29 @@ COLORS = ["#75D1BA", "#B0813B", "#A85238", "#18493F", "#32955E",
           "#BB3E94", "#2F8E31", "#CED175", "#85D686", "#A39FDF"]
 NAN_FRAC = 0.5
 
-TRANSLATE = {"contacts":"Contactos",
-            "graph_attributes":"Atributos de grafos",
-            "movement":"Movimiento"}
+# Get translation table
+sql = f"""
+    SELECT *
+    FROM graph_attributes.attribute_names 
+    """
+
+query_job = client.query(sql, job_config=job_config) 
+df_translations = query_job.to_dataframe()
+
+df_translations.set_index(["type", "attribute_name"], inplace=True)
+print(df_translations.head())
+def translate(attr_name, typ):
+    translation = df_translations.iloc[(df_translations.index.get_level_values('type') == typ) \
+                                       & (df_translations.index.get_level_values('attribute_name') == attr_name)]["translated_name"]
+
+    return translation.values[0]
+
+def get_yaxis_name(attr_name, typ):
+    yaxis_name = df_translations.iloc[(df_translations.index.get_level_values('type') == typ) \
+                                       & (df_translations.index.get_level_values('attribute_name') == attr_name)]["yaxis_name"]
+    return yaxis_name.values[0]
+
+
 
 def get_attrs(columns):
     attrs_codes = {}
@@ -55,12 +80,7 @@ else:
 treatment_date = pd.Timestamp(datetime.datetime.strptime(treatment_date, '%Y-%m-%d'))
 
 steps = pd.date_range(treatment_date, end_date, periods=STEP).tolist()
-
-# if delta > 30:
-#     step = 10
-# elif delta > 20:
-#     step = 5
-# else: step = 2 
+ 
    
 for k in DIFFDIFF_CODES.keys():
     print(indent + f"Calculating diff-diff for {k} variables.")
@@ -79,63 +99,46 @@ for k in DIFFDIFF_CODES.keys():
         df_tmp = df[[ctrl_column, trtm_column]].copy()
         
         # Check dataset integrity
-        size = (df_tmp.shape[0] * df_tmp.shape[1])
-        if df_tmp.isnull().sum().sum() / size >= NAN_FRAC:
-            print(f"WARNING: Dataset is missing more than half of its values.")
+        if df_tmp[trtm_column].isnull().sum() / len(df_tmp[trtm_column]) >= NAN_FRAC:
+            print("WARNING: Treatment dataset is missing more than half of its values. Continuing with next variable.")
+            continue
+        if df_tmp[ctrl_column].isnull().sum() / len(df_tmp[ctrl_column]) >= NAN_FRAC:
+            print("WARNING: Control dataset is missing more than half of its values. Continuing with next variable.")
+            continue
         
+        df_baseline = df_tmp[df_tmp.index < treatment_date].copy()
+        baseline = df_baseline[ctrl_column].subtract(df_baseline[trtm_column]).mean()
         df_tmp = df_tmp[(df_tmp.index >= treatment_date) & (df_tmp.index <= end_date)]
         df_tmp.sort_index(inplace=True)
-
-        try:
-            baseline = (df_tmp.at[treatment_date, ctrl_column]) - (df_tmp.at[treatment_date, trtm_column])
-        except KeyError:
-            min_date = df_tmp.index.min()
-            baseline = (df_tmp.at[min_date, ctrl_column]) - (df_tmp.at[min_date, trtm_column])            
-            print(f"WARNING: treatment date {treatment_date} not found at index. Next available date {min_date}")
         
-        if np.isnan(baseline):
-            print("""WARNING: Can't establish baseline for diff-diff please check integrity of data. 
-            Dafatrame might have too many missing values. Continuing with next variable""")
-            continue    
-        points = []
-        dates = []
-        for d in df_tmp.index[::STEP]:
-            point = (df_tmp.at[d, ctrl_column]) - (df_tmp.at[d, trtm_column])
-            points.append(point)
-            dates.append(d)
-        try:
-            final = (df_tmp.at[end_date, ctrl_column]) - (df_tmp.at[end_date, trtm_column])
-        except:
-            max_date = df_tmp.index.max()
-            final = (df_tmp.at[max_date, ctrl_column]) - (df_tmp.at[max_date, trtm_column])
-        if final != points[-1]:
-            points.append(final)
-            dates.append(end_date)
-            
-        # Calculate diff-diff for each point   
-        points = [(p / baseline) for p in points]
-        df_diffdiff_tmp = pd.DataFrame({"date":dates, attr:points})
-        df_diffdiff = df_diffdiff.merge(df_diffdiff_tmp, on="date", how="outer")
+        # Calculate diff-diff
+        df_tmp[f"{k}-{attr}"] = df_tmp[ctrl_column].subtract(df_tmp[trtm_column]).divide(baseline).multiply(100)
+        df_diffdiff = df_diffdiff.merge(df_tmp[f"{k}-{attr}"], left_on="date", right_index=True, how="outer")
+        
 
+    if df_diffdiff.shape[1] <= 1:
+        continue
+        
     # Drop rows without diff-diff
+    print(indent + f"Plotting...")
     df_diffdiff.set_index("date", inplace=True)
     df_diffdiff.dropna(inplace=True, how="all")
-    print(indent + f"Plotting...")
     export_folder_location = os.path.join(folder_name, k)
     if not os.path.exists(export_folder_location):
         os.makedirs(export_folder_location)
-        
+    
     for i in range(len(df_diffdiff.columns)):
-        attr = df_diffdiff.columns[i]
+        column_name = df_diffdiff.columns[i]
+        typ, attr = column_name.split("-")
         color = COLORS[i]
-        ymin = df_diffdiff[attr].min()
-        ymax = df_diffdiff[attr].max()
-        plt.plot(df_diffdiff.index, df_diffdiff[attr], color=color, label=attr)
+        plt.plot(df_diffdiff.index, df_diffdiff[column_name], color=color, label=f"{translate(attr, typ)}")
+        ymin = df_diffdiff[column_name].min()
+        ymax = df_diffdiff[column_name].max()
         plt.vlines(treatment_date, ymin, ymax, color=COLOR_HIHGLIGH, linestyle="--")
         plt.annotate("Tratamiento", (treatment_date,(ymax + ymin)/2), rotation=90, color=COLOR_HIHGLIGH)
-        plt.title(f"{attr}")
+        plt.title("Cambio porcentual en diff-diff")
         plt.xlabel("Fecha")
-        plt.ylabel("diff-diff")
+        plt.ylabel("Porciento (%)")
         plt.xticks(rotation=45)
         plt.tight_layout()
         plt.legend(bbox_to_anchor=(1.05, 1))

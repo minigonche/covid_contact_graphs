@@ -24,7 +24,8 @@ job_config = bigquery.QueryJobConfig(allow_large_results = True)
 indent = const.indent
 WINDOW_SIZE = 7 #days
 control_flag = False
-DIFFDIFF_CODE = const.diffdiff_codes["graph_attributes"]
+ATTR_NAME = "graph_attributes"
+DIFFDIFF_CODE = const.diffdiff_codes[ATTR_NAME]
 
 # Get translation table
 sql = f"""
@@ -38,13 +39,13 @@ df_translations = query_job.to_dataframe()
 df_translations.set_index(["type", "attribute_name"], inplace=True)
 
 def translate(attr_name):
-    translation = df_translations.iloc[(df_translations.index.get_level_values('type') == "graph_attributes") \
+    translation = df_translations.iloc[(df_translations.index.get_level_values('type') == ATTR_NAME) \
                                        & (df_translations.index.get_level_values('attribute_name') == attr_name)]["translated_name"]
 
     return translation.values[0]
 
 def get_yaxis_name(attr_name):
-    yaxis_name = df_translations.iloc[(df_translations.index.get_level_values('type') == "graph_attributes") \
+    yaxis_name = df_translations.iloc[(df_translations.index.get_level_values('type') == ATTR_NAME) \
                                        & (df_translations.index.get_level_values('attribute_name') == attr_name)]["yaxis_name"]
     return yaxis_name.values[0]
 
@@ -112,7 +113,7 @@ data_name_trtm = ge.clean_for_publication(data_name_trtm)
 
 sql_0 = f"""
     SELECT *
-    FROM graph_attributes.graph_attributes
+    FROM graph_attributes.{ATTR_NAME}
     WHERE location_id="{treatment_polygon_name}" 
         AND date >= "{start_date.strftime("%Y-%m-%d")}" AND date <= "{end_date.strftime("%Y-%m-%d")}"
     """
@@ -150,14 +151,14 @@ if control_polygon_name != "None":
     
     # export location
     export_folder_location_diffdiff = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}", "diff-diff")
-    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}", "graph_attr")
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}", ATTR_NAME)
     if not os.path.exists(export_folder_location):
         os.makedirs(export_folder_location) 
     if not os.path.exists(export_folder_location_diffdiff):
         os.makedirs(export_folder_location_diffdiff) 
 else:
     # export location
-    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}", "graph_attr")
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}", ATTR_NAME)
     if not os.path.exists(export_folder_location):
         os.makedirs(export_folder_location) 
 
@@ -165,7 +166,7 @@ else:
 if control_flag:
     sql_1 = f"""
         SELECT *
-        FROM graph_attributes.graph_attributes
+        FROM graph_attributes.{ATTR_NAME}
         WHERE location_id="{control_polygon_name}"  
             AND date >= "{start_date.strftime("%Y-%m-%d")}" AND date <= "{end_date.strftime("%Y-%m-%d")}"
     """
@@ -210,7 +211,7 @@ if control_flag:
         rename_cols_trtm[attr] = trtm_column
     df_diff_diff = df_graph_attr_control_plt.rename(columns=rename_cols_ctrl) \
         .merge(df_graph_attr_treatment_plt.rename(columns=rename_cols_trtm), on="date", how="outer")
-    df_diff_diff.to_csv(os.path.join(export_folder_location_diffdiff, f"graph_attributes.csv"), index=False)
+    df_diff_diff.to_csv(os.path.join(export_folder_location_diffdiff, f"{ATTR_NAME}.csv"), index=False)
 else:
     attrs = list(set(df_graph_attr_treatment_plt.columns) - set(["date"]))
     

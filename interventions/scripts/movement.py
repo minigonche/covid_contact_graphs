@@ -23,6 +23,13 @@ job_config = bigquery.QueryJobConfig(allow_large_results = True)
 # Constants
 indent = const.indent
 WINDOW_SIZE = 7 #days
+COLOR_CTRL = "#79c5b4"
+COLOR_TRT = "#324592"
+COLOR_HIHGLIGH = '#ff8c65'
+control_flag = False
+
+ATTR_NAME = "graph_movement"
+DIFFDIFF_CODE = const.diffdiff_codes[ATTR_NAME]
 
 # Get translation table
 sql = f"""
@@ -36,23 +43,14 @@ df_translations = query_job.to_dataframe()
 df_translations.set_index(["type", "attribute_name"], inplace=True)
 
 def translate(attr_name):
-    translation = df_translations.iloc[(df_translations.index.get_level_values('type') == "graph_movement") \
+    translation = df_translations.iloc[(df_translations.index.get_level_values('type') == ATTR_NAME) \
                                        & (df_translations.index.get_level_values('attribute_name') == attr_name)]["translated_name"]
     return translation.values[0]
 
 def get_yaxis_name(attr_name):
-    yaxis_name = df_translations.iloc[(df_translations.index.get_level_values('type') == "graph_movement") \
+    yaxis_name = df_translations.iloc[(df_translations.index.get_level_values('type') == ATTR_NAME) \
                                        & (df_translations.index.get_level_values('attribute_name') == attr_name)]["yaxis_name"]
     return yaxis_name.values[0]
-
-COLOR_CTRL = "#79c5b4"
-COLOR_TRT = "#324592"
-COLOR_HIHGLIGH = '#ff8c65'
-control_flag = False
-
-DIFFDIFF_CODE = const.diffdiff_codes["movement"]
-
-
 
 if len(sys.argv) <= 5:
     print(indent + "This scripts runs with the following args:")
@@ -113,7 +111,7 @@ data_name_trtm = ge.clean_for_publication(data_name_trtm)
 
 sql_0 = f"""
     SELECT *
-    FROM graph_attributes.graph_movement
+    FROM graph_attributes.{ATTR_NAME}
     WHERE location_id="{treatment_polygon_name}" 
         AND date >= "{start_date.strftime("%Y-%m-%d")}" AND date <= "{end_date.strftime("%Y-%m-%d")}"
     """
@@ -152,7 +150,7 @@ if control_polygon_name != "None":
     
     # export location
     export_folder_location_diffdiff = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}", "diff-diff")    
-    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}", "movement")
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}", ATTR_NAME)
     if not os.path.exists(export_folder_location):
         os.makedirs(export_folder_location)
     if not os.path.exists(export_folder_location_diffdiff):
@@ -160,7 +158,7 @@ if control_polygon_name != "None":
     
 else:
     # export location
-    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}", "movement")
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}", ATTR_NAME)
     if not os.path.exists(export_folder_location):
         os.makedirs(export_folder_location) 
 
@@ -169,7 +167,7 @@ attrs = list(set(df_mov_treatment.columns) - set(["location_id", "date"]))
 if control_flag:
     sql_1 = f"""
         SELECT *
-        FROM graph_attributes.graph_movement
+        FROM graph_attributes.{ATTR_NAME}
         WHERE location_id="{control_polygon_name}"  
             AND date >= "{start_date.strftime("%Y-%m-%d")}" AND date <= "{end_date.strftime("%Y-%m-%d")}"
     """
@@ -202,7 +200,7 @@ if control_flag:
         df_diff_diff = df_mov_control.rename(columns=rename_cols_ctrl) \
             .merge(df_mov_treatment.rename(columns=rename_cols_trtm), on="date", how="outer")
         df_diff_diff.drop(columns=["location_id_x", "location_id_y"], inplace=True)
-        df_diff_diff.to_csv(os.path.join(export_folder_location_diffdiff, f"movement.csv"), index=False)
+        df_diff_diff.to_csv(os.path.join(export_folder_location_diffdiff, f"{ATTR_NAME}.csv"), index=False)
         
     
 

@@ -28,8 +28,9 @@ COLOR_TRT = "#324592"
 COLOR_HIHGLIGH = '#ff8c65'
 control_flag = False
 remove_outliers = False
-DIFFDIFF_CODE = const.diffdiff_codes["contacts"]
 
+ATTR_NAME = "contacts"
+DIFFDIFF_CODE = const.diffdiff_codes[ATTR_NAME]
 
 if len(sys.argv) <= 4:
     print(indent + "This scripts runs with the following args:")
@@ -130,12 +131,12 @@ if control_polygon_name != "None":
     control_flag = True
     # export location
     export_folder_location_diffdiff = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}", "diff-diff")
-    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}", "contacts")    
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}-{control_polygon_name}", ATTR_NAME)    
     if not os.path.exists(export_folder_location):
         os.makedirs(export_folder_location) 
 else:
     # export location
-    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}", "contacts")
+    export_folder_location = os.path.join(export_folder_location, f"{treatment_polygon_name}", ATTR_NAME)
     if not os.path.exists(export_folder_location):
         os.makedirs(export_folder_location) 
         
@@ -230,7 +231,7 @@ baseline_treatment = df_contacts_treatment.loc[df_contacts_treatment["date"] < \
 df_contacts_treatment["percentage_change_trtm"] = df_contacts_treatment["contacts_agg"].subtract(baseline_treatment).divide(baseline_treatment)
 
 print(indent + "\tSaving control and treatment dataset.")
-df_contacts_treatment.to_csv(os.path.join(export_folder_location, "contacts.csv"), index=False)
+df_contacts_treatment.to_csv(os.path.join(export_folder_location, f"{ATTR_NAME}.csv"), index=False)
 df_contacts = df_contacts_treatment.copy()
     
 if control_flag == False:    
@@ -264,7 +265,7 @@ if control_flag == False:
     plt.xlabel("Fecha")
     plt.ylabel("Cambio porcentual")
     print(indent + "\tExporting...")
-    plt.savefig(os.path.join(export_folder_location, f"percent_change_contacts.png"))
+    plt.savefig(os.path.join(export_folder_location, f"percent_change_{ATTR_NAME}.png"))
 
 else:
     if remove_outliers:
@@ -291,7 +292,7 @@ else:
     trtm_column = f"{DIFFDIFF_CODE}-1-contacts_percentage_change-trtm"
     df_contacts.rename(columns={"percentage_change_ctrl":ctrl_column, \
                                 "percentage_change_trtm":trtm_column}).to_csv(
-        os.path.join(export_folder_location_diffdiff, f"contacts.csv"), index=False)
+        os.path.join(export_folder_location_diffdiff, f"{ATTR_NAME}.csv"), index=False)
     
     # Plot contact change
     print(indent + "\tPlotting...")
@@ -317,4 +318,4 @@ else:
     plt.ylabel("Cambio porcentual")
 
     print(indent + "\tExporting...")
-    plt.savefig(os.path.join(export_folder_location, f"percent_change_contacts.png"))
+    plt.savefig(os.path.join(export_folder_location, f"percent_change_{ATTR_NAME}.png"))
