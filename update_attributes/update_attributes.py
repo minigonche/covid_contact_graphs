@@ -37,7 +37,7 @@ import graphs_attributes.graph_eigenvalue_weighted as graph_eigenvalue_weighted
 import graphs_attributes.graph_eigenvalue_unweighted as graph_eigenvalue_unweighted
 import graphs_attributes.graph_transitivity as graph_transitivity
 import graphs_attributes.graph_num_cases_accumulated as graph_num_cases_accumulated
-
+import graphs_attributes.graph_avg_distance_to_infected as graph_avg_distance_to_infected
 
 
 
@@ -57,6 +57,7 @@ all_node_attributes.append(node_personalized_pagerank.NodePersonalizedPageRank()
 # Include here the desired graph attributes
 # ------------------------------------
 all_graph_attributes = []
+all_graph_attributes.append(graph_avg_distance_to_infected.GraphAvgDistanceToInfected())
 all_graph_attributes.append(graph_size.GraphSize())
 all_graph_attributes.append(graph_num_edges.GraphNumEdges())
 all_graph_attributes.append(graph_num_contacts.GraphNumberOfContacts())
@@ -72,8 +73,21 @@ all_graph_attributes.append(graph_num_cases_accumulated.GraphNumberOfCasesAccumu
 #all_graph_attributes.append(graph_betweenness_gini.GraphBetweennessGini())
 
 
+# Orders the list by priority
+# Nodes
+node_order = [elem.priority for elem in all_node_attributes]
+all_node_attributes = (np.array(all_node_attributes)[np.argsort(node_order)]).tolist()
+
+# Graphs
+graph_order = [elem.priority for elem in all_graph_attributes]
+all_graph_attributes = (np.array(all_graph_attributes)[np.argsort(graph_order)]).tolist()
+
+print(node_distance_to_infected.NodeDistanceToInfected().priority)
+print(all_node_attributes)
+print(all_graph_attributes)
 
 def main():
+    
 
     # Extracts the current date
     # Extracts the current date. Substract one day and the goes back to the closest sunday

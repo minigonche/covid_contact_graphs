@@ -9,6 +9,7 @@ import numpy as np
 
 attribute_name = 'betweenness_centrality'
 
+
 # Max Support
 max_num_nodes = np.inf
 max_num_edges = 50000000 # 50 Millions
