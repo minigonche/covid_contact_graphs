@@ -35,7 +35,10 @@ class GenericWeeklyAttribute():
             - starting_date(pd.datetime)(optional): Can establish a starting date for the attribute
 
         '''
-
+        
+        # Attribute name
+        self.attribute_name = attribute_name
+        
         # Starts the client
         self.client = bigquery.Client(location="US")
         
