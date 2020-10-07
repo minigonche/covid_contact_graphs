@@ -22,25 +22,27 @@ job_config = bigquery.QueryJobConfig(allow_large_results = True)
 
 # Constants
 indent = const.indent
-WINDOW_SIZE = 7 #days
-COLOR_CTRL = "#79c5b4"
-COLOR_TRT = "#324592"
-COLOR_HIHGLIGH = '#ff8c65'
+WINDOW_SIZE = const.WINDOW_SIZE
+COLOR_CTRL = const.COLOR_CTRL
+COLOR_TRT = const.COLOR_TRT
+COLOR_HIHGLIGH = const.COLOR_HIHGLIGH
+WHIS = const.WHIS
 control_flag = False
 remove_outliers = False
 
 ATTR_NAME = "contacts"
 DIFFDIFF_CODE = const.diffdiff_codes[ATTR_NAME]
 
-if len(sys.argv) <= 4:
+if len(sys.argv) < 8:
     print(indent + "This scripts runs with the following args:")
     print(indent + "\t1. location_id*")
     print(indent + "\t2. report_name*")
     print(indent + "\t3. treatment polygon*")
     print(indent + "\t4. control polygon*")
     print(indent + "\t5. treatment_date*")
-    print(indent + "\t6. start_date (Default: 2020-02-01)")
-    print(indent + f"\t7. end_date (Default: Today: {datetime.datetime.now()})")
+    print(indent + "\t6. treatment_date*")
+    print(indent + "\t7. start_date*")
+    print(indent + f"\t8. end_date*")
     raise Exception("Insufficient arguments. Please run again.")
 
 # Reads the parameters from excecution
@@ -49,6 +51,9 @@ report_name  =  sys.argv[2] # report name
 treatment_polygon_name = sys.argv[3] # treatment_polygon
 control_polygon_name = sys.argv[4] # control_polygon
 treatment_date = sys.argv[5] # treatment_date
+treatment_length = sys.argv[6] # treatment_length
+start_date = sys.argv[7] # Start_date
+end_date = sys.argv[8] # End_date
 
 # Get dataset details
 sql = f"""
@@ -67,18 +72,6 @@ data_set_trtm = df_database.at[0, "dataset"]
 data_name_trtm = df_database.at[0, "name"]
 data_name_trtm = ge.clean_for_publication(data_name_trtm)
 
-if len(sys.argv) == 8:
-    start_date = sys.argv[6] 
-    start_date = pd.Timestamp(datetime.datetime.strptime(start_date, '%Y-%m-%d'))
-else:
-    start_date = pd.Timestamp(datetime.datetime.strptime("2020-02-01", '%Y-%m-%d'))
-
-if len(sys.argv) == 8:
-    end_date = sys.argv[7]
-    end_date = pd.Timestamp(datetime.datetime.strptime(end_date, '%Y-%m-%d'))
-else:
-    end_date = pd.Timestamp(datetime.datetime.now())
-
 # export location
 export_folder_location = os.path.join(con.reports_folder_location, report_name, con.figure_folder_name)
 if not os.path.exists(export_folder_location):
@@ -86,6 +79,9 @@ if not os.path.exists(export_folder_location):
     
 # Convert dates to datetime
 treatment_date = pd.Timestamp(datetime.datetime.strptime(treatment_date, '%Y-%m-%d'))
+treatment_end = treatment_date + datetime.timedelta(days = int(treatment_length))
+start_date = pd.Timestamp(datetime.datetime.strptime(start_date, '%Y-%m-%d'))
+end_date = pd.Timestamp(datetime.datetime.strptime(end_date, '%Y-%m-%d'))
 
 sql_0 = f"""
     SELECT *
@@ -122,7 +118,7 @@ df_min_hour["min_hour"] = df_min_hour.apply(lambda x: df_contacts_treatment.at[x
 df_hourly_stats_tratment = df_max_hour.merge(df_min_hour, on="date", how="outer").drop(columns=["contacts_agg_x", "contacts_agg_y"])
 df_hourly_stats_tratment["week"] = df_hourly_stats_tratment.apply(lambda x: int(x.date.strftime("%V")), axis=1)
 d = range(df_hourly_stats_tratment["week"].min(), int(end_date.strftime("%V")))
-d = [k for k in d if k >= int(treatment_date.strftime("%V"))]
+d = [k for k in d if (k >= int(treatment_date.strftime("%V")) and (k >= int(treatment_end.strftime("%V"))))]
 df_hourly_stats_tratment_avg = df_hourly_stats_tratment.groupby("week").mean().reset_index()
 df_hourly_stats_tratment_avg.rename(columns={"max_hour":"Hora máxima", "min_hour":"Hora mínima"}, inplace=True)
 df_plot_hourly_stats_treat = pd.melt(df_hourly_stats_tratment_avg, id_vars=['week'], value_vars=['Hora máxima', 'Hora mínima'])
@@ -233,7 +229,7 @@ df_contacts_treatment["percentage_change_trtm"] = df_contacts_treatment["contact
 print(indent + "\tSaving control and treatment dataset.")
 df_contacts_treatment.to_csv(os.path.join(export_folder_location, f"{ATTR_NAME}.csv"), index=False)
 df_contacts = df_contacts_treatment.copy()
-    
+
 if control_flag == False:    
     # Plot hourly stats
     print(indent + "\tPlotting...")
@@ -297,7 +293,7 @@ else:
     # Plot contact change
     print(indent + "\tPlotting...")
     d = pd.date_range(start_date, end_date)
-    d = [k for k in d if k >= treatment_date]
+    d = [k for k in d if ((k >= treatment_date) and (k <= treatment_end))]
 
     maxy = df_contacts.percentage_change_trtm.max()
     miny = df_contacts.percentage_change_trtm.min()
@@ -319,3 +315,104 @@ else:
 
     print(indent + "\tExporting...")
     plt.savefig(os.path.join(export_folder_location, f"percent_change_{ATTR_NAME}.png"))
+    
+# Plotting boxplots
+if control_flag:
+    df_contacts_treatment_boxplot_pre = df_contacts_treatment[df_contacts_treatment["date"] < treatment_date].copy()
+    df_contacts_control_boxplot_pre = df_contacts_control[df_contacts_control["date"] < treatment_date].copy()  
+
+    df_contacts_treatment_boxplot_post = df_contacts_treatment.loc[(df_contacts_treatment["date"] >= treatment_date)\
+                                                    & (df_contacts_treatment["date"] <= treatment_end)].copy()
+    df_contacts_control_boxplot_post = df_contacts_control.loc[(df_contacts_control["date"] >= treatment_date)\
+                                                    & (df_contacts_control["date"] <= treatment_end)].copy()     
+    
+    data_to_plot = [df_contacts_treatment_boxplot_pre["contacts_agg"], df_contacts_control_boxplot_pre["contacts_agg"], \
+                        df_contacts_treatment_boxplot_post["contacts_agg"], df_contacts_control_boxplot_post["contacts_agg"]]
+            
+    # Create a figure instance
+    fig, ax = plt.subplots(figsize=(10, 10))
+    fig.subplots_adjust(bottom=0.5)   
+
+    # Create the boxplot
+    bp = ax.boxplot(data_to_plot, patch_artist=True, whis=WHIS)
+        
+    ## change outline color, fill color and linewidth of the boxes
+    box_trtm_pre = bp['boxes'][0]
+    box_ctrl_pre = bp['boxes'][1]
+    box_trtm_pos = bp['boxes'][2]
+    box_ctrl_pos = bp['boxes'][3]
+    # change outline and fill color
+    box_trtm_pre.set(color=COLOR_TRT, linewidth=2)
+    box_ctrl_pre.set(color=COLOR_CTRL, linewidth=2)
+    box_trtm_pos.set(color=COLOR_TRT, linewidth=2)
+    box_ctrl_pos.set(color=COLOR_CTRL, linewidth=2)
+        
+    ## change color and linewidth of the whiskers
+    whisker_trtm_pre_1 = bp['whiskers'][0]
+    whisker_trtm_pre_2 = bp['whiskers'][1]
+    whisker_ctrl_pre_1 = bp['whiskers'][2]
+    whisker_ctrl_pre_2 = bp['whiskers'][3]
+    whisker_trtm_pos_1 = bp['whiskers'][4]
+    whisker_trtm_pos_2 = bp['whiskers'][5]
+    whisker_ctrl_pos_1 = bp['whiskers'][6]
+    whisker_ctrl_pos_2 = bp['whiskers'][7]
+             
+    whisker_trtm_pre_1.set(color=COLOR_TRT, linewidth=2)
+    whisker_trtm_pre_2.set(color=COLOR_TRT, linewidth=2)
+    whisker_ctrl_pre_1.set(color=COLOR_CTRL, linewidth=2)
+    whisker_ctrl_pre_2.set(color=COLOR_CTRL, linewidth=2)
+    whisker_trtm_pos_1.set(color=COLOR_TRT, linewidth=2)
+    whisker_trtm_pos_2.set(color=COLOR_TRT, linewidth=2)
+    whisker_ctrl_pos_1.set(color=COLOR_CTRL, linewidth=2)
+    whisker_ctrl_pos_2.set(color=COLOR_CTRL, linewidth=2)
+
+    ## change color and linewidth of the caps
+    cap_trtm_pre_1 = bp['caps'][0]
+    cap_trtm_pre_2 = bp['caps'][1]
+    cap_ctrl_pre_1 = bp['caps'][2]
+    cap_ctrl_pre_2 = bp['caps'][3]
+    cap_trtm_pos_1 = bp['caps'][4]
+    cap_trtm_pos_2 = bp['caps'][5]
+    cap_ctrl_pos_1 = bp['caps'][6]
+    cap_ctrl_pos_2 = bp['caps'][7]
+
+    cap_trtm_pre_1.set(color=COLOR_TRT, linewidth=2)
+    cap_trtm_pre_2.set(color=COLOR_TRT, linewidth=2)
+    cap_ctrl_pre_1.set(color=COLOR_CTRL, linewidth=2)
+    cap_ctrl_pre_2.set(color=COLOR_CTRL, linewidth=2)
+    cap_trtm_pos_1.set(color=COLOR_TRT, linewidth=2)
+    cap_trtm_pos_2.set(color=COLOR_TRT, linewidth=2)
+    cap_ctrl_pos_1.set(color=COLOR_CTRL, linewidth=2)
+    cap_ctrl_pos_2.set(color=COLOR_CTRL, linewidth=2)
+        
+    ## change color and linewidth of the medians        
+    for median in bp['medians']:
+        median.set(color=COLOR_HIHGLIGH, linewidth=2)
+
+    ## change the style of fliers and their fill
+    flier_trtm_pre = bp['fliers'][0]
+    flier_ctrl_pre = bp['fliers'][1]
+    flier_trtm_pos = bp['fliers'][2]
+    flier_ctrl_pos = bp['fliers'][3]
+    # change outline and fill color
+    flier_trtm_pre.set(marker='o', markeredgecolor=COLOR_TRT, alpha=0.5, linewidth=2)
+    flier_ctrl_pre.set(marker='o', markeredgecolor=COLOR_CTRL, alpha=0.5, linewidth=2)
+    flier_trtm_pos.set(marker='o', markeredgecolor=COLOR_TRT, alpha=0.5, linewidth=2)
+    flier_ctrl_pos.set(marker='o', markeredgecolor=COLOR_CTRL, alpha=0.5, linewidth=2)
+            
+    ##legend
+    ax.legend([bp["boxes"][0], bp["boxes"][1]], ['Tratamiento', 'Control'], loc='upper left')
+        
+    ## Custom x-axis labels
+    ax.set_xticklabels([f"{ge.wrap_text(data_name_trtm)}", f"{ge.wrap_text(data_name_ctrl)}", \
+                        f"{ge.wrap_text(data_name_trtm)}", f"{ge.wrap_text(data_name_ctrl)}"])
+
+    ax.annotate("Tratamiento", (0.5,0.5), xycoords='axes fraction' ,rotation=90, color=COLOR_HIHGLIGH)
+    ax.axvline(2.5, linestyle="--", color=COLOR_HIHGLIGH, linewidth=1)
+    ax.set_title("Numero de contactos diarios")
+    ax.set_ylabel("Numero de contactos")
+    ## Remove top axes and right axes ticks
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+        
+    fig.savefig(os.path.join(export_folder_location,"boxplot.png"))

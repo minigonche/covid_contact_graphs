@@ -22,14 +22,17 @@ job_config = bigquery.QueryJobConfig(allow_large_results = True)
 
 # Constants
 indent = const.indent
-WINDOW_SIZE = 7 #days
-COLOR_CTRL = "#79c5b4"
-COLOR_TRT = "#324592"
-COLOR_HIHGLIGH = '#ff8c65'
+WINDOW_SIZE = const.WINDOW_SIZE
+COLOR_CTRL = const.COLOR_CTRL
+COLOR_TRT = const.COLOR_TRT
+COLOR_HIHGLIGH = const.COLOR_HIHGLIGH
+WHIS = const.WHIS
+
 control_flag = False
 
 ATTR_NAME = "graph_movement"
 DIFFDIFF_CODE = const.diffdiff_codes[ATTR_NAME]
+
 
 # Get translation table
 sql = f"""
@@ -45,51 +48,51 @@ df_translations.set_index(["type", "attribute_name"], inplace=True)
 def translate(attr_name):
     translation = df_translations.iloc[(df_translations.index.get_level_values('type') == ATTR_NAME) \
                                        & (df_translations.index.get_level_values('attribute_name') == attr_name)]["translated_name"]
+    if len(translation) == 0:
+        raise Exception(f"No translation found for attribute {attr_name} of type {ATTR_NAME}.\nPlease update graph_attributes.attribute_names table.")
     return translation.values[0]
 
 def get_yaxis_name(attr_name):
     yaxis_name = df_translations.iloc[(df_translations.index.get_level_values('type') == ATTR_NAME) \
                                        & (df_translations.index.get_level_values('attribute_name') == attr_name)]["yaxis_name"]
+    if len(yaxis_name) == 0:
+        raise Exception(f"No translation found for attribute {attr_name} of type {ATTR_NAME}.\nPlease update graph_attributes.attribute_names table.")
     return yaxis_name.values[0]
 
-if len(sys.argv) <= 5:
+if len(sys.argv) < 8:
     print(indent + "This scripts runs with the following args:")
     print(indent + "\t1. location_id*")
     print(indent + "\t2. report_name*")
     print(indent + "\t3. treatment polygon*")
     print(indent + "\t4. control polygon*")
     print(indent + "\t5. treatment_date*")
-    print(indent + "\t6. start_date (Default: 2020-02-01)")
-    print(indent + f"\t7. end_date (Default: Today: {datetime.datetime.now()})")
+    print(indent + "\t6. treatment_date*")
+    print(indent + "\t7. start_date*")
+    print(indent + f"\t8. end_date*")
     raise Exception("Insufficient arguments. Please run again.")
-    
+
 # Reads the parameters from excecution
 location_id  =  sys.argv[1] # location id
 report_name  =  sys.argv[2] # report name
-treatment_polygon_name = sys.argv[3] # treatment_polygon_name
-control_polygon_name = sys.argv[4] # control_polygon_name
-
+treatment_polygon_name = sys.argv[3] # treatment_polygon
+control_polygon_name = sys.argv[4] # control_polygon
 treatment_date = sys.argv[5] # treatment_date
+treatment_length = sys.argv[6] # treatment_length
+start_date = sys.argv[7] # Start_date
+end_date = sys.argv[8] # End_date
     
+
 # export location
 export_folder_location = os.path.join(con.reports_folder_location, report_name, con.figure_folder_name)
 if not os.path.exists(export_folder_location):
     os.makedirs(export_folder_location)    
     
-if len(sys.argv) == 8:
-    start_date = sys.argv[6] 
-    start_date = pd.Timestamp(datetime.datetime.strptime(start_date, '%Y-%m-%d'))
-else:
-    start_date = pd.Timestamp(datetime.datetime.strptime("2020-02-01", '%Y-%m-%d'))
-
-if len(sys.argv) == 8:
-    end_date = sys.argv[7]
-    end_date = pd.Timestamp(datetime.datetime.strptime(end_date, '%Y-%m-%d'))
-else:
-    end_date = pd.Timestamp(datetime.datetime.now())
 
 # Convert dates to datetime
 treatment_date = pd.Timestamp(datetime.datetime.strptime(treatment_date, '%Y-%m-%d'))
+treatment_end = treatment_date + datetime.timedelta(days = int(treatment_length))
+start_date = pd.Timestamp(datetime.datetime.strptime(start_date, '%Y-%m-%d'))
+end_date = pd.Timestamp(datetime.datetime.strptime(end_date, '%Y-%m-%d'))
 
 # Get dataset details
 sql = f"""
@@ -206,6 +209,112 @@ if control_flag:
 
 
 print(indent + f"Plotting...")
+# Plotting boxplots
+if control_flag:
+    df_mov_treatment_boxplot_pre = df_mov_treatment[df_mov_treatment["date"] < treatment_date].copy()
+    df_mov_control_boxplot_pre = df_mov_control[df_mov_control["date"] < treatment_date].copy()  
+
+    df_mov_treatment_boxplot_post = df_mov_treatment.loc[(df_mov_treatment["date"] >= treatment_date)\
+                                                    & (df_mov_treatment["date"] <= treatment_end)].copy()
+    df_mov_control_boxplot_post = df_mov_control.loc[(df_mov_control["date"] >= treatment_date)\
+                                                    & (df_mov_control["date"] <= treatment_end)].copy()     
+    
+    for attr in attrs: 
+        print(indent + f"\t{attr}")
+        data_to_plot = [df_mov_treatment_boxplot_pre[attr], df_mov_control_boxplot_pre[attr], \
+                        df_mov_treatment_boxplot_post[attr], df_mov_control_boxplot_post[attr]]
+            
+        # Create a figure instance
+        fig, ax = plt.subplots(figsize=(10, 10))
+        fig.subplots_adjust(bottom=0.5)   
+
+        # Create the boxplot
+        bp = ax.boxplot(data_to_plot, patch_artist=True, whis=WHIS)
+        
+        ## change outline color, fill color and linewidth of the boxes
+        box_trtm_pre = bp['boxes'][0]
+        box_ctrl_pre = bp['boxes'][1]
+        box_trtm_pos = bp['boxes'][2]
+        box_ctrl_pos = bp['boxes'][3]
+        # change outline and fill color
+        box_trtm_pre.set(color=COLOR_TRT, linewidth=2)
+        box_ctrl_pre.set(color=COLOR_CTRL, linewidth=2)
+        box_trtm_pos.set(color=COLOR_TRT, linewidth=2)
+        box_ctrl_pos.set(color=COLOR_CTRL, linewidth=2)
+        
+        ## change color and linewidth of the whiskers
+        whisker_trtm_pre_1 = bp['whiskers'][0]
+        whisker_trtm_pre_2 = bp['whiskers'][1]
+        whisker_ctrl_pre_1 = bp['whiskers'][2]
+        whisker_ctrl_pre_2 = bp['whiskers'][3]
+        whisker_trtm_pos_1 = bp['whiskers'][4]
+        whisker_trtm_pos_2 = bp['whiskers'][5]
+        whisker_ctrl_pos_1 = bp['whiskers'][6]
+        whisker_ctrl_pos_2 = bp['whiskers'][7]
+        
+        
+        whisker_trtm_pre_1.set(color=COLOR_TRT, linewidth=2)
+        whisker_trtm_pre_2.set(color=COLOR_TRT, linewidth=2)
+        whisker_ctrl_pre_1.set(color=COLOR_CTRL, linewidth=2)
+        whisker_ctrl_pre_2.set(color=COLOR_CTRL, linewidth=2)
+        whisker_trtm_pos_1.set(color=COLOR_TRT, linewidth=2)
+        whisker_trtm_pos_2.set(color=COLOR_TRT, linewidth=2)
+        whisker_ctrl_pos_1.set(color=COLOR_CTRL, linewidth=2)
+        whisker_ctrl_pos_2.set(color=COLOR_CTRL, linewidth=2)
+
+        ## change color and linewidth of the caps
+        cap_trtm_pre_1 = bp['caps'][0]
+        cap_trtm_pre_2 = bp['caps'][1]
+        cap_ctrl_pre_1 = bp['caps'][2]
+        cap_ctrl_pre_2 = bp['caps'][3]
+        cap_trtm_pos_1 = bp['caps'][4]
+        cap_trtm_pos_2 = bp['caps'][5]
+        cap_ctrl_pos_1 = bp['caps'][6]
+        cap_ctrl_pos_2 = bp['caps'][7]
+
+        cap_trtm_pre_1.set(color=COLOR_TRT, linewidth=2)
+        cap_trtm_pre_2.set(color=COLOR_TRT, linewidth=2)
+        cap_ctrl_pre_1.set(color=COLOR_CTRL, linewidth=2)
+        cap_ctrl_pre_2.set(color=COLOR_CTRL, linewidth=2)
+        cap_trtm_pos_1.set(color=COLOR_TRT, linewidth=2)
+        cap_trtm_pos_2.set(color=COLOR_TRT, linewidth=2)
+        cap_ctrl_pos_1.set(color=COLOR_CTRL, linewidth=2)
+        cap_ctrl_pos_2.set(color=COLOR_CTRL, linewidth=2)
+        
+        ## change color and linewidth of the medians        
+        for median in bp['medians']:
+            median.set(color=COLOR_HIHGLIGH, linewidth=2)
+
+        ## change the style of fliers and their fill
+        flier_trtm_pre = bp['fliers'][0]
+        flier_ctrl_pre = bp['fliers'][1]
+        flier_trtm_pos = bp['fliers'][2]
+        flier_ctrl_pos = bp['fliers'][3]
+        # change outline and fill color
+        flier_trtm_pre.set(marker='o', markeredgecolor=COLOR_TRT, alpha=0.5, linewidth=2)
+        flier_ctrl_pre.set(marker='o', markeredgecolor=COLOR_CTRL, alpha=0.5, linewidth=2)
+        flier_trtm_pos.set(marker='o', markeredgecolor=COLOR_TRT, alpha=0.5, linewidth=2)
+        flier_ctrl_pos.set(marker='o', markeredgecolor=COLOR_CTRL, alpha=0.5, linewidth=2)
+            
+        ##legend
+        ax.legend([bp["boxes"][0], bp["boxes"][1]], ['Tratamiento', 'Control'], loc='upper left')
+        
+        ## Custom x-axis labels
+        ax.set_xticklabels([f"{ge.wrap_text(data_name_trtm)}", f"{ge.wrap_text(data_name_ctrl)}", \
+                            f"{ge.wrap_text(data_name_trtm)}", f"{ge.wrap_text(data_name_ctrl)}"])
+
+        ax.annotate("Tratamiento", (0.5,0.5), xycoords='axes fraction' ,rotation=90, color=COLOR_HIHGLIGH)
+        ax.axvline(2.5, linestyle="--", color=COLOR_HIHGLIGH, linewidth=1)
+        ax.set_title(translate(attr))
+        ax.set_ylabel(get_yaxis_name(attr))
+        ## Remove top axes and right axes ticks
+        ax.get_xaxis().tick_bottom()
+        ax.get_yaxis().tick_left()
+        
+        fig.savefig(os.path.join(export_folder_location,f"{attr}_boxplot.png"))
+        
+
+# Plotting linegraphs
 for attr in attrs:    
     print(indent + f"\t{attr}")
     fig, ax = plt.subplots() 
@@ -214,10 +323,10 @@ for attr in attrs:
     ax.set_ylabel(get_yaxis_name(attr))
     maxy = df_mov_treatment[attr].max()
     miny = df_mov_treatment[attr].min()
-    d = pd.date_range(treatment_date, end_date).values
+    d = pd.date_range(treatment_date, treatment_end).values
     fig.set_figheight(5)
     fig.set_figwidth(15)
-    ax.plot(df_mov_treatment["date"], df_mov_treatment[attr], linewidth=1, color=COLOR_TRT, label=f"{data_name_trtm} (tratamiento)")
+    ax.plot(df_mov_treatment["date"], df_mov_treatment[attr], linewidth=1, color=COLOR_TRT, label=f"{data_name_trtm} (pre-tratamiento) (tratamiento)")
     fig_name = f"{attr}.png"
     if control_flag:
         maxy = max(df_mov_control[attr].max(), df_mov_treatment[attr].max())

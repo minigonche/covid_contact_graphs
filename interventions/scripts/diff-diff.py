@@ -20,11 +20,11 @@ job_config = bigquery.QueryJobConfig(allow_large_results = True)
 # Constants
 DIFFDIFF_CODES = const.diffdiff_codes
 indent = const.indent
-STEP = 5
-COLOR_HIHGLIGH = '#ff8c65'
-COLORS = ["#75D1BA", "#B0813B", "#A85238", "#18493F", "#32955E", 
-          "#1C4054", "#265873", "#CF916E", "#DEAA9C", "#6B2624",
-          "#BB3E94", "#2F8E31", "#CED175", "#85D686", "#A39FDF"]
+COLOR_CTRL = const.COLOR_CTRL
+COLOR_TRT = const.COLOR_TRT
+COLOR_HIHGLIGH = const.COLOR_HIHGLIGH
+WHIS = const.WHIS
+COLORS = const.PALETTE
 NAN_FRAC = 0.5
 
 # Get translation table
@@ -69,17 +69,14 @@ def get_attrs(columns):
 # get input
 folder_name = sys.argv[1]
 treatment_date = sys.argv[2]
-
-if len(sys.argv) > 3:
-    end_date = sys.argv[3]
-    end_date = pd.Timestamp(datetime.datetime.strptime(end_date, '%Y-%m-%d'))
-else:
-    end_date = pd.Timestamp(datetime.datetime.now())
+treatment_length = sys.argv[3]
+end_date = sys.argv[4]
     
 # Convert dates to date object
 treatment_date = pd.Timestamp(datetime.datetime.strptime(treatment_date, '%Y-%m-%d'))
+treatment_end = treatment_date + datetime.timedelta(days = treatment_length)
+end_date = pd.Timestamp(datetime.datetime.strptime(end_date, '%Y-%m-%d'))
 
-steps = pd.date_range(treatment_date, end_date, periods=STEP).tolist()
  
    
 for k in DIFFDIFF_CODES.keys():
@@ -127,6 +124,8 @@ for k in DIFFDIFF_CODES.keys():
     if not os.path.exists(export_folder_location):
         os.makedirs(export_folder_location)
     
+    d = pd.date_range(treatment_date, treatment_end).values
+    # Plotting diff-diff percentage change
     for i in range(len(df_diffdiff.columns)):
         column_name = df_diffdiff.columns[i]
         typ, attr = column_name.split("-")
@@ -134,6 +133,7 @@ for k in DIFFDIFF_CODES.keys():
         plt.plot(df_diffdiff.index, df_diffdiff[column_name], color=color, label=f"{translate(attr, typ)}")
         ymin = df_diffdiff[column_name].min()
         ymax = df_diffdiff[column_name].max()
+        plt.fill_between(d, ymax, ymin, facecolor=COLOR_HIHGLIGH, alpha = 0.25)
         plt.vlines(treatment_date, ymin, ymax, color=COLOR_HIHGLIGH, linestyle="--")
         plt.annotate("Tratamiento", (treatment_date,(ymax + ymin)/2), rotation=90, color=COLOR_HIHGLIGH)
         plt.title("Cambio porcentual en diff-diff")
@@ -145,5 +145,6 @@ for k in DIFFDIFF_CODES.keys():
         plt.savefig(os.path.join(export_folder_location, f"diff-diff_{attr}.png"))
         plt.close()
         
+    # Plotting diff-diff boxplot
     df_diffdiff.to_csv(os.path.join(export_folder_location, "diff-diff.csv"))
     
