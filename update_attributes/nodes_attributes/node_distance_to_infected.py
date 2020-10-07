@@ -9,7 +9,7 @@ import utils
 import positive_db_functions as pos_fun
 
 attribute_name = 'distance_to_infected'
-
+priority = 2
 
 # Queries
 # ---------
@@ -121,7 +121,7 @@ class NodeDistanceToInfected(GenericNodeAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericNodeAttribute.__init__(self, attribute_name = attribute_name)
+        GenericNodeAttribute.__init__(self, attribute_name = attribute_name, priority = priority)
             
         self.df_codes =  utils.get_geo_codes(self.client, location_id = None)
         self.df_codes.index = self.df_codes.location_id

@@ -8,6 +8,7 @@ import utils
 import numpy as np
 
 attribute_name = 'pagerank_centrality'
+attribute_publication_name = "Centralidad Pagerank"
 
 # Max Support
 max_num_nodes = np.inf

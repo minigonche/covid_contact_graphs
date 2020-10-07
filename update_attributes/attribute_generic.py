@@ -22,7 +22,7 @@ class GenericWeeklyAttribute():
 
 
     # Initializer
-    def __init__(self, attribute_name, 
+    def __init__(self, attribute_name,
                        starting_date = starting_date, 
                        max_num_nodes = np.inf, 
                        max_num_edges = np.inf,
@@ -38,10 +38,7 @@ class GenericWeeklyAttribute():
 
         # Starts the client
         self.client = bigquery.Client(location="US")
-
-        # Saves the attribute_name
-        self.attribute_name = attribute_name
-
+        
         # Saves the starting date
         # Adjusts starting date so that is sunday (or else it will not be consistent with the database)
         self.starting_date = starting_date

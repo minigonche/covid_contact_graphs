@@ -1,48 +1,34 @@
-# Node personalized pagerank
+# Average distance to infected
 
 
-from node_attribute_generic import GenericNodeAttribute
+from graph_attribute_generic import GenericGraphAttribute
 import pandas as pd
 import numpy as np
-import igraph as ig
 import utils
 import positive_db_functions as pos_fun
 
+attribute_name = 'average_distance_to_infected'
 
-attribute_name = 'personalized_pagerank_centrality'
-attribute_publication_name = "Centralidad Pagerank Personalizada"
 
-# Max Support
-max_num_nodes = np.inf
-max_num_edges = 50000000 # 50 Millions
 
-priority = 2
-
-# Epsilon
-eps = 1e-16
-# Constant for division (For weight depending on distance)
-div = 1200 # in meters
-
-class NodePersonalizedPageRank(GenericNodeAttribute):
+class GraphAvgDistanceToInfected(GenericGraphAttribute):
     '''
-    Script that computes the pagerank of the nodes
+    Script that computes the average distance to infected
+
     '''
 
     def __init__(self):
         # Initilizes the super class
-        GenericNodeAttribute.__init__(self, attribute_name = attribute_name, max_num_nodes = max_num_nodes, max_num_edges = max_num_edges, priority = priority)
-            
+        GenericGraphAttribute.__init__(self, attribute_name)
+        
         self.df_codes =  utils.get_geo_codes(self.client, location_id = None)
         self.df_codes.index = self.df_codes.location_id
         
         # Gets the max date of symptoms for each supported location        
-        self.max_dates = pos_fun.get_positive_max_dates(self.client)
-    
+        self.max_dates = pos_fun.get_positive_max_dates(self.client)               
 
-    # --- Global Abstract Methods
     def compute_attribute(self, nodes, edges):
         '''
-        # TODO
         Main Method to Implement
         
         This method must be implemented by the subclass. It receives compact nodes and edges and 
@@ -62,14 +48,13 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
         
         returns
             pd.DataFrame with the following structure
-                - attribute_name (str): The attribute name                     
-                - identifier (str): Identifier of the node or graph
+                - attribute_name (str): The attribute nam            
                 - value (float): The value of the attribute
         '''
-
+    
         raise ValueError('Should not enter here')
     
-
+    
     
     def compute_attribute_for_interval(self, graph_id, start_date_string, end_date_string):
         '''
@@ -84,61 +69,27 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
         returns
             pd.DataFrame with the structure of the output of the method compute_attribute   
         '''
-                        
+                
         query = f"""
-             SELECT identifier, attribute_value as distance_to_infected
-                FROM graph_attributes.node_attributes
-                WHERE location_id = '{graph_id}'
-                    AND date = '{end_date_string}'
+            SELECT AVG(attribute_value) as value
+            FROM grafos-alcaldia-bogota.graph_attributes.node_attributes
+            WHERE location_id = "{graph_id}" AND attribute_name = "distance_to_infected" AND date = "{end_date_string}"
         """
         
-        # Compute Weights
-        df_distances = utils.run_simple_query(self.client, query, allow_large_results = True)
+        df = utils.run_simple_query(self.client, query)
         
-        if df_distances.shape[0] == 0:
-            raise ValueError(f'No distance to infected found for {graph_id} on {end_date_string}. Please compute it!')
+        # Extracts the value
+        value = df['value'].values[0]
         
-        # Sets Nones
-        df_distances.fillna(np.inf, inplace = True)
+        if pd.isna(value):
+            print('             ' + f'No distance to infected found for {graph_id} on {end_date_string}')
+            return(pd.DataFrame({'value':None, 'attribute_name':[self.attribute_name] }))
+                
+        df_response = pd.DataFrame({'value':[value], 'attribute_name':[self.attribute_name] })
+
         
-        # Apply inverted soft_plus
-        df_distances['dist_weight'] = np.log(1 + np.exp(-1*df_distances.distance_to_infected/div))/np.log(2)
-         
-        
-        # Nodes
-        nodes = self.get_compact_nodes(graph_id, start_date_string, end_date_string)
-        
-        # Merges with weights        
-        nodes = nodes.merge(df_distances, on = 'identifier', how = 'left')
-        #print(nodes.dist_weight.isna().sum())
-        nodes.fillna(0, inplace = True)
-        
-        # Edges               
-        edges = self.get_compact_edgelist(graph_id, start_date_string, end_date_string)    
-        
-        # Create the graph
-        G = ig.Graph()
-        
-        # Adds the values
-        G.add_vertices(nodes.identifier.values)        
-                    
-        if edges.shape[0] > 0:
-            G.add_edges(edges.apply(lambda df: (df.id1, df.id2), axis = 1))
-        
-        # Adds weights to edges
-        G.es['weight'] = edges.weight.values
-        
-        # Exctracs the personalized pagerank
-        personalized_page_rank = G.personalized_pagerank(weights = 'weight', directed = False, reset = nodes['dist_weight'].values)
-        
-        # Adds it to the nodes
-        nodes['value'] = personalized_page_rank
-        
-        # Adds the attribute name
-        nodes['attribute_name'] = self.attribute_name
-        
-        # Returns the value
-        return(nodes)
+        return(df_response)
+    
     
     
     
@@ -161,9 +112,6 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
         returns
             Boolean
         '''
-
-        if location_id == 'colombia_university_rosario_campus_norte':
-            return(False)
         
         return( pos_fun.has_positives_database(self.client, location_id, self.df_codes))
     
@@ -191,14 +139,4 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
         up_to_date = pos_fun.positives_up_to_date(self.client, location_id, current_date, self.df_codes, self.max_dates)
         
         return(up_to_date)  
-
-
-    
-
-        
-    
-    
-    
-    
-    
     

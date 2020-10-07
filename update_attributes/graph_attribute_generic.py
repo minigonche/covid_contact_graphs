@@ -14,7 +14,7 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
 
     def __init__(self, attribute_name, starting_date = attribute_generic.starting_date, max_num_nodes = np.inf, max_num_edges = np.inf, priority = 1):
         # Initilizes the super class
-        GenericWeeklyAttribute.__init__(self, attribute_name,  starting_date, max_num_nodes, max_num_edges)
+        GenericWeeklyAttribute.__init__(self, attribute_name = attribute_name,  starting_date = starting_date, max_num_nodes = max_num_nodes, max_num_edges = max_num_edges, priority = priority)
 
 
 
