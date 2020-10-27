@@ -179,10 +179,10 @@ def main(report_name, locations_id, dataset_id, min_date, max_date, dif = None, 
         geo_locations = filter(geo_locations, min_lat, max_lat, min_lon, max_lon)
 
 
-    ax = geo_pagerank_trace.plot(figsize=(12, 12), alpha=0.1, markersize = 12, color = 'yellow')
-    geo_pagerank.plot(alpha=1, markersize = 21, color = 'blue', ax = ax)
-    geo_locations.plot(alpha=1, markersize = 27, color = 'red', ax = ax)
-    ctx.add_basemap(ax)
+    ax = geo_pagerank_trace.plot(figsize=(12, 12), alpha=0.1, markersize = 17, color = 'green')
+    geo_pagerank.plot(alpha=1, markersize = 35, color = 'blue', ax = ax)
+    geo_locations.plot(alpha=1, markersize = 35, color = 'red', ax = ax)
+    ctx.add_basemap(ax, source=ctx.providers.OpenTopoMap)
     ax.set_axis_off()
     ax.figure.savefig(os.path.join(export_folder_location, 'edge_detection.png'))
 

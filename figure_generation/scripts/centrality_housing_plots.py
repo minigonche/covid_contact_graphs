@@ -177,8 +177,28 @@ def main(report_name, location_id, attribute_name, min_date, max_date, num_top =
 
     df_export = df_export.rename(columns = {'identifier':'Identificador', 'attribute_value':'centralidad', 'type': 'Tipo de Ubicacion'})
 
-
+    # in csv
     df_export.to_csv(os.path.join(export_folder_location, f'housing_{attribute_name}.csv'), index = False)
+    
+    # in shapefile
+    df_export = geopandas.GeoDataFrame(
+        df_export, geometry=geopandas.points_from_xy(df_export.lon, df_export.lat))
+    
+    # Sets CRS
+    df_export.geometry = df_export.geometry.set_crs('EPSG:4326')
+    
+    df_export.columns = ['ID', 'lon', 'lat', 'centr', 'tipo', 'geometry']
+    
+    # Creates folder if does not exists
+    shape_export = os.path.join(export_folder_location, f'housing_{attribute_name}_shape')
+    if not os.path.exists(shape_export):
+        os.makedirs(shape_export)
+        
+        
+    
+    df_export.to_file(os.path.join(shape_export, f'housing_{attribute_name}.shp'))
+
+    
 
 
 

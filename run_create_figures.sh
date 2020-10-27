@@ -59,7 +59,19 @@ else
 
         # Edgelist
         python figure_generation/scripts/edgelist_plots.py reporte_quindio colombia_armenia 30 5
-    
+
+    elif [ "$1" = "ALL" ] || [ "$1" = "popayan" ] 
+        then
+        echo 'Popayán'
+        # Transits Housing
+        python figure_generation/scripts/transits_housing_plots.py reporte_popayan 30 colombia_popayan
+
+        # Centrality
+        python figure_generation/scripts/centrality_housing_plots.py reporte_popayan colombia_popayan pagerank_centrality 30 5000 2
+
+        # Edgelist
+        python figure_generation/scripts/edgelist_plots.py reporte_popayan colombia_popayan 30 2
+        
     else
         echo "Parameter not foud"
         
