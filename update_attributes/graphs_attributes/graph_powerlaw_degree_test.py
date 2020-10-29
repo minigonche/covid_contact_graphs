@@ -10,10 +10,14 @@ from scipy.stats import expon
 from scipy.stats import lognorm
 from scipy.stats import kstest
 
-attribute_name = 'powerlaw_degree_is_dist'
 
 # This Class has multiple attrbiute names
 
+# Dictionary to include property values
+property_values = {}
+
+# Attribute name
+property_values['attribute_name'] = 'powerlaw_degree_is_dist'
 
 
 class GraphPowerLawTest(GenericGraphAttribute):
@@ -25,7 +29,7 @@ class GraphPowerLawTest(GenericGraphAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, attribute_name)  
+        GenericGraphAttribute.__init__(self, property_values)  
                 
 
     def compute_attribute(self, nodes, edges):
@@ -73,7 +77,7 @@ class GraphPowerLawTest(GenericGraphAttribute):
                 
         query = f"""
             SELECT location_id, identifier, attribute_name, attribute_value
-            FROM grafos-alcaldia-bogota.graph_attributes.node_attributes
+            FROM {utils.nodes_attribute_table}
             WHERE location_id = "{graph_id}" AND attribute_name = "node_degree" AND date = "{end_date_string}"
         """
         

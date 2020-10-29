@@ -13,6 +13,7 @@ import os
 
 
 
+
 # Global min date
 global_min_date = pd.to_datetime('2020-02-01 00:00:00')
 global_min_sunday = pd.to_datetime('2020-02-09 00:00:00')
@@ -24,13 +25,15 @@ date_format = '%Y-%m-%d'
 # Global temp dataset
 temp_data_set_id = "download_temp"
 
-graphs_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.graph_attributes'
-nodes_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.node_attributes'
+graphs_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.graph_attributes_daily'
+nodes_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.node_attributes_daily'
 
 bogota_codes = ['CO.34','CO.33']
 palmira_codes = ['CO.34','CO.33']
 
 global_accuracy = 30
+
+global_attribute_window = 7
 
 
 
@@ -543,7 +546,7 @@ def get_max_dates_for_graph_attributes(client):
 
     sql = f"""
         SELECT attribute_name, location_id, MAX(date) as max_date
-        FROM grafos-alcaldia-bogota.graph_attributes.graph_attributes
+        FROM {graphs_attribute_table}
         GROUP BY attribute_name, location_id
     """
 
@@ -557,7 +560,7 @@ def get_max_dates_for_node_attributes(client):
 
     sql = f"""
         SELECT attribute_name, location_id, MAX(date) as max_date
-        FROM grafos-alcaldia-bogota.graph_attributes.node_attributes
+        FROM {nodes_attribute_table}
         GROUP BY attribute_name, location_id
     """
 

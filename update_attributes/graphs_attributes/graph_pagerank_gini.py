@@ -6,8 +6,12 @@ import pandas as pd
 import numpy as np
 import utils
 
-attribute_name = 'pagerank_gini_index'
 
+# Dictionary to include property values
+property_values = {}
+
+# Attribute name
+property_values['attribute_name'] = 'pagerank_gini_index'
 
 
 class GraphPageRankGini(GenericGraphAttribute):
@@ -19,7 +23,7 @@ class GraphPageRankGini(GenericGraphAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, attribute_name)
+        GenericGraphAttribute.__init__(self, property_values)
                         
 
     def compute_attribute(self, nodes, edges):
@@ -67,7 +71,7 @@ class GraphPageRankGini(GenericGraphAttribute):
                 
         query = f"""
             SELECT location_id, identifier, attribute_name, attribute_value
-            FROM grafos-alcaldia-bogota.graph_attributes.node_attributes
+            FROM {utils.nodes_attribute_table}
             WHERE location_id = "{graph_id}" AND attribute_name = "pagerank_centrality" AND date = "{end_date_string}"
         """
         

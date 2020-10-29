@@ -6,11 +6,19 @@ import numpy as np
 import igraph as ig
 import utils
 
-attribute_name = 'graph_transitivity'
+
+# Dictionary to include property values
+property_values = {}
+
+# Attribute name
+property_values['attribute_name'] = 'graph_transitivity'
+
 
 # Max Support
-max_num_nodes = np.inf
-max_num_edges = 50000000 # 50 Millions
+property_values['max_num_nodes'] = np.inf
+property_values['max_num_edges'] = 50000000 # 50 Millions
+
+
 
 class GraphTransitivity(GenericGraphAttribute):
     '''
@@ -20,7 +28,7 @@ class GraphTransitivity(GenericGraphAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, attribute_name = attribute_name, max_num_nodes = max_num_nodes, max_num_edges = max_num_edges)
+        GenericGraphAttribute.__init__(self, property_values)
                         
 
     # --- Global Abstract Methods

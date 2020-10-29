@@ -6,7 +6,15 @@ import pandas as pd
 import utils
 import numpy as np
 
-attribute_name = 'graph_size'
+
+
+# Dictionary to include property values
+property_values = {}
+
+# Attribute name
+property_values['attribute_name'] = 'graph_size'
+
+
 
 class GraphSize(GenericGraphAttribute):
     '''
@@ -15,7 +23,7 @@ class GraphSize(GenericGraphAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, attribute_name)
+        GenericGraphAttribute.__init__(self, property_values)
                 
 
     def compute_attribute(self, nodes, edges):

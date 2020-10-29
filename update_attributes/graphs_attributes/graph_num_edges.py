@@ -5,7 +5,14 @@ from graph_attribute_generic import GenericGraphAttribute
 import pandas as pd
 import utils
 
-attribute_name = 'graph_num_edges'
+
+# Dictionary to include property values
+property_values = {}
+
+# Attribute name
+property_values['attribute_name'] = 'graph_num_edges'
+
+
 
 class GraphNumEdges(GenericGraphAttribute):
     '''
@@ -14,7 +21,7 @@ class GraphNumEdges(GenericGraphAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, attribute_name)
+        GenericGraphAttribute.__init__(self, property_values)
                 
 
     def compute_attribute(self, nodes, edges):

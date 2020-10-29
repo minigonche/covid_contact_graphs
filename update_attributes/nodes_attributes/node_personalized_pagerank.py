@@ -9,14 +9,21 @@ import utils
 import positive_db_functions as pos_fun
 
 
-attribute_name = 'personalized_pagerank_centrality'
-attribute_publication_name = "Centralidad Pagerank Personalizada"
+# Dictionary to include property values
+property_values = {}
+
+# Attribute name
+property_values['attribute_name'] = 'personalized_pagerank_centrality'
+
+# Priority
+property_values['priority'] = 2
 
 # Max Support
-max_num_nodes = np.inf
-max_num_edges = 50000000 # 50 Millions
+property_values['max_num_nodes'] = np.inf
+property_values['max_num_edges'] = 50000000 # 50 Millions
 
-priority = 2
+
+# Other properties
 
 # Epsilon
 eps = 1e-16
@@ -30,7 +37,7 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericNodeAttribute.__init__(self, attribute_name = attribute_name, max_num_nodes = max_num_nodes, max_num_edges = max_num_edges, priority = priority)
+        GenericNodeAttribute.__init__(self, property_values)
             
         self.df_codes =  utils.get_geo_codes(self.client, location_id = None)
         self.df_codes.index = self.df_codes.location_id
@@ -87,7 +94,7 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
                         
         query = f"""
              SELECT identifier, attribute_value as distance_to_infected
-                FROM graph_attributes.node_attributes
+                FROM {utils.nodes_attribute_table}
                 WHERE location_id = '{graph_id}'
                     AND date = '{end_date_string}'
         """

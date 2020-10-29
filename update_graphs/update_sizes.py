@@ -10,12 +10,9 @@ import numpy as np
 
 def main():
 
-    # Extracts the current date
-    # Extracts the current date. Substract one day and the goes back to the colsest sunday
+    # Extracts the current date. 
     end_date = utils.get_today() - timedelta(days = 1)
-    while end_date.dayofweek != 6:
-        end_date = end_date - timedelta(days = 1)         
-
+     
     # Extracts the locations
     client = bigquery.Client(location="US")
     df_locations = utils.get_current_locations(client)
@@ -44,7 +41,7 @@ def main():
         if pd.isna(row.max_date):
             start_date = utils.global_min_sunday
         else:
-            start_date = row.max_date + timedelta(days = 7) # Next sunday
+            start_date = row.max_date + timedelta(days = 1) # Next Day
 
         print(f'      Calculating for {row.location_id} ({i} of {df_locations.shape[0]}), from: {start_date} to {end_date}')
 
@@ -83,7 +80,7 @@ def main():
             query_job.result()
 
             print(f'         {current_date}: OK.')
-            current_date = current_date + timedelta(days = 7)
+            current_date = current_date + timedelta(days = 1)
             
         print(f'   Elapsed Time: {np.round((time.time() - start_time)/3600,3)} hours')
 

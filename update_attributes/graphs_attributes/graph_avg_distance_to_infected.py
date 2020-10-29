@@ -7,7 +7,12 @@ import numpy as np
 import utils
 import positive_db_functions as pos_fun
 
-attribute_name = 'average_distance_to_infected'
+
+# Dictionary to include property values
+property_values = {}
+
+# Attribute name
+property_values['attribute_name'] = 'average_distance_to_infected'
 
 
 
@@ -19,7 +24,7 @@ class GraphAvgDistanceToInfected(GenericGraphAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, attribute_name)
+        GenericGraphAttribute.__init__(self, property_values)
         
         self.df_codes =  utils.get_geo_codes(self.client, location_id = None)
         self.df_codes.index = self.df_codes.location_id
@@ -72,7 +77,7 @@ class GraphAvgDistanceToInfected(GenericGraphAttribute):
                 
         query = f"""
             SELECT AVG(attribute_value) as value
-            FROM grafos-alcaldia-bogota.graph_attributes.node_attributes
+            FROM {utils.nodes_attribute_table}
             WHERE location_id = "{graph_id}" AND attribute_name = "distance_to_infected" AND date = "{end_date_string}"
         """
         

@@ -6,7 +6,15 @@ import pandas as pd
 import utils
 import numpy as np
 
-attribute_name = 'number_of_contacts'
+
+# Dictionary to include property values
+property_values = {}
+
+# Attribute name
+property_values['attribute_name'] = 'number_of_contacts'
+
+
+
 
 class GraphNumberOfContacts(GenericGraphAttribute):
     '''
@@ -15,7 +23,7 @@ class GraphNumberOfContacts(GenericGraphAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, attribute_name)   
+        GenericGraphAttribute.__init__(self, property_values)   
                 
 
     def compute_attribute(self, nodes, edges):

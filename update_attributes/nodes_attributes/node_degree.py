@@ -6,7 +6,13 @@ import pandas as pd
 import utils
 import numpy as np
 
-attribute_name = 'node_degree'
+
+# Dictionary to include property values
+property_values = {}
+
+# Attribute name
+property_values['attribute_name'] = 'node_degree'
+
 
 class NodeDegree(GenericNodeAttribute):
     '''
@@ -15,7 +21,7 @@ class NodeDegree(GenericNodeAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericNodeAttribute.__init__(self, attribute_name = attribute_name)
+        GenericNodeAttribute.__init__(self, property_values)
 
 
     # --- Global Abstract Methods

@@ -8,8 +8,16 @@ import igraph as ig
 import utils
 import positive_db_functions as pos_fun
 
-attribute_name = 'distance_to_infected'
-priority = 2
+#NOTA
+# Los intervalos de dias a incluir según fecha de inicio sintomas, fueron ajustados después de
+# una conversación con Mauricio
+
+# Dictionary to include property values
+property_values = {}
+
+# Attribute name
+property_values['attribute_name'] = 'distance_to_infected'
+property_values['priority'] = 2
 
 # Queries
 # ---------
@@ -121,7 +129,7 @@ class NodeDistanceToInfected(GenericNodeAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericNodeAttribute.__init__(self, attribute_name = attribute_name, priority = priority)
+        GenericNodeAttribute.__init__(self, property_values)
             
         self.df_codes =  utils.get_geo_codes(self.client, location_id = None)
         self.df_codes.index = self.df_codes.location_id

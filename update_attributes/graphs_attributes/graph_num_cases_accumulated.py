@@ -7,8 +7,12 @@ import utils
 import numpy as np
 import positive_db_functions as pos_fun
 
-attribute_name = 'number_of_cases_accumulated'
 
+# Dictionary to include property values
+property_values = {}
+
+# Attribute name
+property_values['attribute_name'] = 'number_of_cases_accumulated'
 
 
 
@@ -45,7 +49,7 @@ class GraphNumberOfCasesAccumulated(GenericGraphAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, attribute_name)  
+        GenericGraphAttribute.__init__(self, property_values)  
 
 
         self.df_codes =  utils.get_geo_codes(self.client, location_id = None)

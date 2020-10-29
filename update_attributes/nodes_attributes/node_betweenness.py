@@ -7,12 +7,16 @@ import igraph as ig
 import utils
 import numpy as np
 
-attribute_name = 'betweenness_centrality'
 
+# Dictionary to include property values
+property_values = {}
+
+# Attribute name
+property_values['attribute_name'] = 'betweenness_centrality'
 
 # Max Support
-max_num_nodes = np.inf
-max_num_edges = 50000000 # 50 Millions
+property_values['max_num_nodes'] = np.inf
+property_values['max_num_edges'] = 50000000 # 50 Millions
 
 
 class NodeBetweenness(GenericNodeAttribute):
@@ -22,7 +26,7 @@ class NodeBetweenness(GenericNodeAttribute):
 
     def __init__(self):
         # Initilizes the super class
-        GenericNodeAttribute.__init__(self, attribute_name = attribute_name, max_num_nodes = max_num_nodes, max_num_edges = max_num_edges)
+        GenericNodeAttribute.__init__(self, property_values)
                 
 
     # --- Global Abstract Methods
