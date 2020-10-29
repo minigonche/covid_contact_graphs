@@ -7,10 +7,30 @@ from datetime import datetime, timedelta
 import numpy as np
 
 
-# Start date
-# Can be edited by the subclass in case it is needed
-# Must be sunday
-starting_date = pd.to_datetime("2020-02-09") # Corresponds to the sixth week of the year
+# Attribute Dictionary
+# Declares all the necesarry attributes in a dictionary (Easier to include new ones)
+# Set value to None, to force the subclass to implement it
+
+# Attributes
+# -----------------------------
+default_property_values = {}
+
+# Necessary
+# ---------
+# Attribute Name (must be implemented by subclass)
+default_property_values['attribute_name'] = None
+
+
+# Optional
+# ---------
+# Start Date of the attribute
+default_property_values['starting_date'] = utils.global_min_sunday # sixth week of the year
+# Max number of edges allow to proceed with calculation
+default_property_values['max_num_nodes'] = np.inf
+# Max number of nodes allow to proceed with calculation
+default_property_values['max_num_edges'] = np.inf
+# Priority of the attribute (lower -> first)
+default_property_values['priority'] = 1
 
 
 class GenericWeeklyAttribute():
@@ -22,32 +42,37 @@ class GenericWeeklyAttribute():
 
 
     # Initializer
-    def __init__(self, attribute_name,
-                       starting_date = starting_date, 
-                       max_num_nodes = np.inf, 
-                       max_num_edges = np.inf,
-                       priority = 1):
+    def __init__(self, edited_property_values):
         '''
         Initializer of the class.
 
-        The following parametrs must be provided:
-            - attribute_name(str): The attribute Name
-            - starting_date(pd.datetime)(optional): Can establish a starting date for the attribute
+        The following parameters must be provided:
+            - edited_property_values : the property dictionary of the class. All None default values must be included
 
         '''
         
-        # Attribute name
-        self.attribute_name = attribute_name
-        
+        # Starts the properties by the dictionary
+        for k in default_property_values:
+            
+            # Sets default
+            val = default_property_values[k]
+            
+            # Checks if given
+            if k in edited_property_values:
+                val = edited_property_values[k]
+                
+            if pd.isna(val):
+                raise ValueError(f'The property {k} must be set by the subclass and was missing or was None, in edited_property_values parameter dictionary.')
+            
+            # Sets the attribute
+            setattr(self, k, val)
+                
+                       
+        # Edits the initial properties
+                
         # Starts the client
         self.client = bigquery.Client(location="US")
-        
-        # Saves the starting date
-        # Adjusts starting date so that is sunday (or else it will not be consistent with the database)
-        self.starting_date = starting_date
-        while self.starting_date.dayofweek != 6:
-            self.starting_date = self.starting_date + timedelta(days = 1)
-            
+                    
             
         # Extracts the locations
         self.df_locations = utils.get_current_locations(self.client)
@@ -58,16 +83,10 @@ class GenericWeeklyAttribute():
         self.df_graph_sizes = utils.get_all_graph_sizes(self.client)
         self.df_graph_sizes.set_index(['location_id','date'], inplace = True)
         
-        # Sets max sizes
-        self.max_num_nodes = max_num_nodes
-        self.max_num_edges = max_num_edges
-        
-        # Priority
-        self.priority = priority
-        
-
+    
 
     # --- Global Abstract Methods
+    # -----------------------------------------------
     def compute_attribute(self, nodes, edges):
         '''
         # TODO
@@ -98,6 +117,7 @@ class GenericWeeklyAttribute():
 
 
     # -- Editable Methods (Probably)
+    # -----------------------------------------------
     def location_id_supported(self, location_id):
         '''
         Method that determines if the attribute is supported for the location_id (graph).
@@ -171,8 +191,8 @@ class GenericWeeklyAttribute():
 
 
     # --- Abstract Methods For the Attribute Type
-
-    def save_attribute_for_week(self, graph_id, year, week):
+    # -----------------------------------------------
+    def save_attribute_for_date(self, graph_id, date_string):
         '''
         Method that computes the attribute for a given week and savess it in the database.
         All weeks are saved as the sunday and the go from monday to sunday.
@@ -180,11 +200,10 @@ class GenericWeeklyAttribute():
 
         params
             - graph_id(str): The graph id
-            - year (int): The year to compute the attribute, this shit could go until 2021
-            - week (int): The week of the year to compute
+            - date_string (str): Date in the format yyyy-mm-dd
 
         generates
-            - Exception if the databaase already contains the attribute for the given week for the given graph id
+            - Exception if the databaase already contains the attribute for the given date
             - Exception if the there is no support for the attribute type
         '''
 
@@ -192,7 +211,7 @@ class GenericWeeklyAttribute():
 
 
     # -- Other Methods
-
+    # -----------------------------------------------
     def get_complete_edgelist(self, graph_id, start_date_string, end_date_string):
         '''
         Method that gets the edgelist of the location. Both dates are inclusive
