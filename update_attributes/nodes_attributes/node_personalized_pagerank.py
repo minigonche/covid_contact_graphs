@@ -1,7 +1,7 @@
 # Node personalized pagerank
 
 
-from node_attribute_generic import GenericNodeAttribute
+from node_attribute_generic_with_cases import GenericNodeAttributeWithCases
 import pandas as pd
 import numpy as np
 import igraph as ig
@@ -30,21 +30,15 @@ eps = 1e-16
 # Constant for division (For weight depending on distance)
 div = 1200 # in meters
 
-class NodePersonalizedPageRank(GenericNodeAttribute):
+class NodePersonalizedPageRank(GenericNodeAttributeWithCases):
     '''
     Script that computes the pagerank of the nodes
     '''
 
     def __init__(self):
         # Initilizes the super class
-        GenericNodeAttribute.__init__(self, property_values)
-            
-        self.df_codes =  utils.get_geo_codes(self.client, location_id = None)
-        self.df_codes.index = self.df_codes.location_id
-        
-        # Gets the max date of symptoms for each supported location        
-        self.max_dates = pos_fun.get_positive_max_dates(self.client)
-    
+        GenericNodeAttributeWithCases.__init__(self, property_values)
+                
 
     # --- Global Abstract Methods
     def compute_attribute(self, nodes, edges):
@@ -148,32 +142,6 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
         return(nodes)
     
     
-    
-    def location_id_supported(self, location_id):
-        '''
-        OVERWRITTEN
-        # ---------------
-        
-        Method that determines if the attribute is supported for the location_id (graph).
-        The default implementation is to return True.
-
-        Overwrite this method in case the attribute is not on any date for a given location.
-    
-        NOTE: This method is called several times inside a loop. Make sure you don't acces any expensive resources in the implementation.
-        
-        params
-            - location_id (str)
-            - current_date (pd.datetime): the current datetime
-
-        returns
-            Boolean
-        '''
-
-        if location_id == 'colombia_university_rosario_campus_norte':
-            return(False)
-        
-        return( pos_fun.has_positives_database(self.client, location_id, self.df_codes))
-    
 
         
     def location_id_supported_on_date(self, location_id, current_date):
@@ -195,9 +163,21 @@ class NodePersonalizedPageRank(GenericNodeAttribute):
             Boolean
         '''
         
-        up_to_date = pos_fun.positives_up_to_date(self.client, location_id, current_date, self.df_codes, self.max_dates)
+        up_to_date = pos_fun.positives_inside_date(self.client, location_id, current_date, self.df_codes, self.max_dates, self.min_dates)
         
-        return(up_to_date)  
+        # Uses the sizes
+        num_edges = self.df_graph_sizes.loc[(location_id,current_date),'num_edges']
+        num_nodes = self.df_graph_sizes.loc[(location_id,current_date),'num_nodes']
+        
+        support = num_edges <= self.max_num_edges and num_nodes <= self.max_num_nodes
+        
+        if not support:
+            print(f'               Nodes: {num_nodes} and Edges: {num_edges} exceeds max: ({self.max_num_nodes},{self.max_num_edges})')
+        
+        return(support and up_to_date)
+    
+        
+
 
 
     

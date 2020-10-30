@@ -1,7 +1,7 @@
 # Graph Number of cases attribute
 
 
-from graph_attribute_generic import GenericGraphAttribute
+from graph_attribute_generic_with_cases import GenericGraphAttributeWithCases
 import pandas as pd
 import utils
 import numpy as np
@@ -42,22 +42,14 @@ bogota_sql = """
                   (SELECT precision FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"))
 """
 
-class GraphNumberOfCasesAccumulated(GenericGraphAttribute):
+class GraphNumberOfCasesAccumulated(GenericGraphAttributeWithCases):
     '''
     Script that computes the number of cases by the given week
     '''
 
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, property_values)  
-
-
-        self.df_codes =  utils.get_geo_codes(self.client, location_id = None)
-        self.df_codes.index = self.df_codes.location_id
-        
-        # Gets the max date of symptoms for each supported location        
-        self.max_dates = pos_fun.get_positive_max_dates(self.client) 
-
+        GenericGraphAttributeWithCases.__init__(self, property_values)  
                 
 
     def compute_attribute(self, nodes, edges):
@@ -102,14 +94,13 @@ class GraphNumberOfCasesAccumulated(GenericGraphAttribute):
             pd.DataFrame with the structure of the output of the method compute_attribute   
         '''
            
-        in_bogota = utils.is_in_bogota(self.client, graph_id, self.df_codes)
-        in_palmira = utils.is_in_palmira(self.client, graph_id, self.df_codes)
-        
-        if in_bogota:
+        city = utils.get_city(self.client, graph_id, self.df_codes)
+                
+        if city == utils.BOGOTA:
             query = bogota_sql.format(end_date_string = end_date_string, location_id = graph_id)
             
-        elif in_palmira:
-            query = generic_sql.format(table_name = 'palmira', end_date_string = end_date_string, location_id = graph_id)
+        else:
+            query = generic_sql.format(table_name = city, end_date_string = end_date_string, location_id = graph_id)
             
         # Computes the total
         response = utils.run_simple_query(self.client, query)
@@ -125,53 +116,4 @@ class GraphNumberOfCasesAccumulated(GenericGraphAttribute):
         return(response)
     
     
-    
-    
-
-    def location_id_supported(self, location_id):
-        '''
-        OVERWRITTEN
-        # ---------------
-        
-        Method that determines if the attribute is supported for the location_id (graph).
-        The default implementation is to return True.
-
-        Overwrite this method in case the attribute is not on any date for a given location.
-    
-        NOTE: This method is called several times inside a loop. Make sure you don't acces any expensive resources in the implementation.
-        
-        params
-            - location_id (str)
-            - current_date (pd.datetime): the current datetime
-
-        returns
-            Boolean
-        '''
-                        
-        return( pos_fun.has_positives_database(self.client, location_id, self.df_codes))
-    
-
-        
-    def location_id_supported_on_date(self, location_id, current_date):
-        '''
-        OVERWRITTEN
-        # --------------
-        
-        Method that determines if the attribute is supported for the location_id (graph) on a specific date
-        The default implementation is to return True if the current date is equal or larger that the starting_date and is not inside hell week
-        Overwrite this method in case the attribute is not supported for a certain location_id (or several) at a particular date
-    
-        NOTE: This method is called several times inside a loop. Make sure you don't acces any expensive resources in the implementation.
-        
-        params
-            - location_id (str)
-            - current_date (pd.datetime): the current datetime
-
-        returns
-            Boolean
-        '''
-        
-        up_to_date = pos_fun.positives_up_to_date(self.client, location_id, current_date, self.df_codes, self.max_dates)
-        
-        return(up_to_date)
             

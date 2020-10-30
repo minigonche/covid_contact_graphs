@@ -25,8 +25,8 @@ date_format = '%Y-%m-%d'
 # Global temp dataset
 temp_data_set_id = "download_temp"
 
-graphs_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.graph_attributes_daily'
-nodes_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.node_attributes_daily'
+graphs_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.graph_attributes'
+nodes_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.node_attributes'
 
 bogota_codes = ['CO.34','CO.33']
 palmira_codes = ['CO.34','CO.33']
@@ -35,7 +35,8 @@ global_accuracy = 30
 
 global_attribute_window = 7
 
-
+# CITY codes
+BOGOTA = "bogota"
 
 def get_today(only_date = False):
     '''
@@ -147,6 +148,36 @@ def get_current_locations_complete(client, only_active = True):
 
     return( run_simple_query(client, sql))
 
+
+
+# Is in different locations ids
+# ----------------
+
+def get_city(client, location_id, df_codes = None):
+    '''
+    Gets the city
+    '''
+    
+    if(is_in_bogota(client, location_id, df_codes = df_codes)):
+        return BOGOTA
+    
+    if('colombia' in location_id):
+        city = location_id.replace('colombia_','')
+        if "_" in city:
+            city = city.split('_')[0]
+            
+        return(city)
+    elif('peru' in location_id):
+        city = location_id.replace('peru_','')[0]
+        if "_" in city:
+            city = city.split('_')[0]
+        return(city)
+    else:
+        raise ValueError(f'No support for location_id: {location_id}')
+    
+    
+
+
 def is_in_bogota(client, location_id, df_codes = None):
     '''
     Checks if the given location_id is in bogota
@@ -160,12 +191,8 @@ def is_in_bogota(client, location_id, df_codes = None):
     
     return(in_bogota)
 
-def is_in_palmira(client, location_id, df_codes = None):
-    '''
-    Checks if the location id is in plamira
-    '''
 
-    return('colombia_palmira' in location_id)
+# ---------------------
 
 
 def get_geo_codes(client, location_id = None):
