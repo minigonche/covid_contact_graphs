@@ -39,8 +39,6 @@ class GenericWeeklyAttribute():
 
     This class can be used for both nodes and graphs attributes
     '''
-
-
     # Initializer
     def __init__(self, edited_property_values):
         '''
@@ -113,8 +111,6 @@ class GenericWeeklyAttribute():
                 - value (float): The value of the attribute
         '''
         raise NotImplementedError
-
-
 
     # -- Editable Methods (Probably)
     # -----------------------------------------------

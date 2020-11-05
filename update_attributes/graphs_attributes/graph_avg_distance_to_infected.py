@@ -14,7 +14,6 @@ property_values = {}
 property_values['attribute_name'] = 'average_distance_to_infected'
 
 
-
 class GraphAvgDistanceToInfected(GenericGraphAttributeWithCases):
     '''
     Script that computes the average distance to infected
@@ -53,7 +52,6 @@ class GraphAvgDistanceToInfected(GenericGraphAttributeWithCases):
         raise ValueError('Should not enter here')
     
     
-    
     def compute_attribute_for_interval(self, graph_id, start_date_string, end_date_string):
         '''
         Method that computes the attribute of the class for the given dates. Edit this method if the attributes requieres more than just the nodes and
@@ -80,11 +78,6 @@ class GraphAvgDistanceToInfected(GenericGraphAttributeWithCases):
         if pd.isna(value):
             print('             ' + f'No distance to infected found for {graph_id} on {end_date_string}')
             return(pd.DataFrame({'value':None, 'attribute_name':[self.attribute_name] }))
-                
         df_response = pd.DataFrame({'value':[value], 'attribute_name':[self.attribute_name] })
-
         
         return(df_response)
-    
-    
-    
