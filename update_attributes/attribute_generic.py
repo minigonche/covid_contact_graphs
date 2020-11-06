@@ -39,8 +39,6 @@ class GenericWeeklyAttribute():
 
     This class can be used for both nodes and graphs attributes
     '''
-
-
     # Initializer
     def __init__(self, edited_property_values):
         '''
@@ -63,7 +61,7 @@ class GenericWeeklyAttribute():
                 
             if pd.isna(val):
                 raise ValueError(f'The property {k} must be set by the subclass and was missing or was None, in edited_property_values parameter dictionary.')
-            
+
             # Sets the attribute
             setattr(self, k, val)
                 
@@ -113,8 +111,6 @@ class GenericWeeklyAttribute():
                 - value (float): The value of the attribute
         '''
         raise NotImplementedError
-
-
 
     # -- Editable Methods (Probably)
     # -----------------------------------------------
@@ -188,8 +184,6 @@ class GenericWeeklyAttribute():
 
         return(self.compute_attribute(nodes, edges))
 
-
-
     # --- Abstract Methods For the Attribute Type
     # -----------------------------------------------
     def save_attribute_for_date(self, graph_id, date_string):
@@ -242,7 +236,6 @@ class GenericWeeklyAttribute():
         df = query_job.to_dataframe()
 
         return(df)
-
 
     def get_compact_edgelist(self, graph_id, start_date_string, end_date_string):
         '''

@@ -13,7 +13,6 @@ property_values = {}
 # Attribute name
 property_values['attribute_name'] = 'pagerank_gini_index'
 
-
 class GraphPageRankGini(GenericGraphAttribute):
     '''
     Script that computes the gini index of the nodes pagerank.
@@ -25,7 +24,6 @@ class GraphPageRankGini(GenericGraphAttribute):
         # Initilizes the super class
         GenericGraphAttribute.__init__(self, property_values)
                         
-
     def compute_attribute(self, nodes, edges):
         '''
         Main Method to Implement
@@ -53,8 +51,6 @@ class GraphPageRankGini(GenericGraphAttribute):
     
         raise ValueError('Should not enter here')
     
-    
-    
     def compute_attribute_for_interval(self, graph_id, start_date_string, end_date_string):
         '''
         Method that computes the attribute of the class for the given dates. Edit this method if the attributes requieres more than just the nodes and
@@ -80,15 +76,11 @@ class GraphPageRankGini(GenericGraphAttribute):
         if df.shape[0] == 0:
             print('             ' + f'No Pagerank Centrality found for {graph_id} on {end_date_string}')
             return(pd.DataFrame({'value':None, 'attribute_name':[self.attribute_name] }))
-
-        
-        
+                
         # Computes the Gini Index
         gini_inex = utils.gini(df.attribute_value.values)
-        
         df_response = pd.DataFrame({'value':[gini_inex], 'attribute_name':[self.attribute_name] })
 
-        
         return(df_response)
     
     

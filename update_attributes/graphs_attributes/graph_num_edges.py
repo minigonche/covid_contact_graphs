@@ -18,11 +18,9 @@ class GraphNumEdges(GenericGraphAttribute):
     '''
     Script that computes the size of the graph
     '''
-
     def __init__(self):
         # Initilizes the super class
-        GenericGraphAttribute.__init__(self, property_values)
-                
+        GenericGraphAttribute.__init__(self, property_values)         
 
     def compute_attribute(self, nodes, edges):
         '''
@@ -48,10 +46,7 @@ class GraphNumEdges(GenericGraphAttribute):
                 - attribute_name (str): The attribute name         
                 - value (float): The value of the attribute
         '''
-        
-
         raise ValueError('Should not enter here')
-    
     
     def compute_attribute_for_interval(self, graph_id, start_date_string, end_date_string):
         '''
@@ -77,7 +72,6 @@ class GraphNumEdges(GenericGraphAttribute):
                 WHERE date >= "{start_date_string}" AND date <= "{end_date_string}"
                 GROUP BY id1, id2
             )
-
         """
                 
         df = utils.run_simple_query(self.client, query)

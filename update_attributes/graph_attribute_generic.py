@@ -36,7 +36,6 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
         if utils.graph_attribute_exists(self.client, graph_id, self.attribute_name, date_string):
             raise ValueError(f'Attribute: {self.attribute_name} already exists for {date_string}')
 
-
         # Goes back the window
         start_date_string = (pd.to_datetime(date_string) - timedelta(days = utils.global_attribute_window - 1)).strftime( utils.date_format)
         
