@@ -112,7 +112,6 @@ class GraphPowerLawTest(GenericGraphAttribute):
         
         df_response = pd.DataFrame({'value':[is_power,ks,p, alpha], 'attribute_name': ['powerlaw_degree_is_dist', 'powerlaw_degree_ks_statistic', 'powerlaw_degree_p_value', 'powerlaw_degree_alpha']})
         
-        
         return(df_response)
     
     

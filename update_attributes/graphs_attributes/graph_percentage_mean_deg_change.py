@@ -7,6 +7,10 @@ import numpy as np
 import utils
 import positive_db_functions as pos_fun
 
+
+
+# This Class has multiple attributes names
+
 # Dictionary to include property values
 property_values = {}
 
@@ -108,14 +112,13 @@ for location_id in set(df_city.index.values) :
     type_id = df_city.loc[location_id]['type'].unique()[0]
     df_location_id = df_city.loc[location_id].set_index('attribute_name')
 
-    df_location_id         = df_location_id.copy().loc[['number_of_contacts', 'graph_size']] #, 'largest_eigenvalue_unweighted', 'largest_eigenvalue_weighted']]
+    df_location_id         = df_location_id.copy().loc[['number_of_contacts', 'graph_num_edges', 'graph_size']] #, 'largest_eigenvalue_unweighted', 'largest_eigenvalue_weighted']]
     df_location_id['date'] = pd.to_datetime(df_location_id['date'])
     df_location_id         = df_location_id.sort_values(by='date')
 
     df_graph_attr_treatment = df_location_id.pivot_table(values='attribute_value', index='date', columns='attribute_name', aggfunc='first')
     num_contacts_baseline   = df_graph_attr_treatment['number_of_contacts'].iloc[:3].mean()
     graph_size_baseline     = df_graph_attr_treatment['graph_size'].iloc[:3].mean()
-
     df_graph_attr_treatment[ 'num_contacts_change_percentage' ]          = df_graph_attr_treatment.apply(lambda x: (x['number_of_contacts']-num_contacts_baseline)/num_contacts_baseline*100, axis=1)
     df_graph_attr_treatment[ 'num_contacts_change_percentage_weighted' ] = df_graph_attr_treatment.apply(lambda x: (x['number_of_contacts']-num_contacts_baseline)/num_contacts_baseline*x['graph_size']/graph_size_baseline*100, axis=1 ) 
     df_graph_attr_treatment = df_graph_attr_treatment.dropna()

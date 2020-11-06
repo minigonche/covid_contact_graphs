@@ -19,6 +19,7 @@ class GraphPageRankGini(GenericGraphAttribute):
     
     This script uses the results from the pagerank node attribute. If nothing is found will return None and writes a warning
     '''
+
     def __init__(self):
         # Initilizes the super class
         GenericGraphAttribute.__init__(self, property_values)
@@ -79,7 +80,7 @@ class GraphPageRankGini(GenericGraphAttribute):
         # Computes the Gini Index
         gini_inex = utils.gini(df.attribute_value.values)
         df_response = pd.DataFrame({'value':[gini_inex], 'attribute_name':[self.attribute_name] })
-        
+
         return(df_response)
     
     
