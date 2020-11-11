@@ -19,7 +19,7 @@ class GenericNodeAttribute(GenericWeeklyAttribute):
         
         
     # For next implementatio
-    def __save_attribute_for_date(self, graph_id, date_string):
+    def save_attribute_for_date(self, graph_id, date_string):
         '''
         Method that computes the attribute for a given week and saves it in the database.
         All weeks are saved as the sunday and the go from monday to sunday.

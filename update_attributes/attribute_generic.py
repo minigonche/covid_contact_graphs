@@ -188,7 +188,7 @@ class GenericWeeklyAttribute():
     # -----------------------------------------------
     
     # For next iteration
-    def __save_attribute_for_date(self, graph_id, date_string):
+    def save_attribute_for_date(self, graph_id, date_string):
         '''
         Method that computes the attribute for a given date and savess it in the database.
         For each date the previuos seven days are taken
