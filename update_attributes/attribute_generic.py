@@ -186,10 +186,12 @@ class GenericWeeklyAttribute():
 
     # --- Abstract Methods For the Attribute Type
     # -----------------------------------------------
-    def save_attribute_for_date(self, graph_id, date_string):
+    
+    # For next iteration
+    def __save_attribute_for_date(self, graph_id, date_string):
         '''
-        Method that computes the attribute for a given week and savess it in the database.
-        All weeks are saved as the sunday and the go from monday to sunday.
+        Method that computes the attribute for a given date and savess it in the database.
+        For each date the previuos seven days are taken
 
 
         params
@@ -202,6 +204,22 @@ class GenericWeeklyAttribute():
         '''
 
         raise NotImplementedError
+        
+    def save_attribute_for_week(self, graph_id, year, week):
+        '''
+        Method that computes the attribute for a given week and savess it in the database.
+        All weeks are saved as the sunday and the go from monday to sunday.
+
+        params
+            - graph_id(str): The graph id
+            - date_string (str): Date in the format yyyy-mm-dd
+
+        generates
+            - Exception if the databaase already contains the attribute for the given date
+            - Exception if the there is no support for the attribute type
+        '''
+
+        raise NotImplementedError        
 
 
     # -- Other Methods
