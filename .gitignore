@@ -1,6 +1,10 @@
 # enviorment
 env/
 
+# Logs and progress
+progress/
+excecution_logs/
+
 # Configuration
 interventions/config_constants.py
 
