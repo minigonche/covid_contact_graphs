@@ -14,7 +14,7 @@ else
         python figure_generation/scripts/movement_plots.py reporte_norte_de_santander 30 colombia_cucuta_comuna_*
 
         # Centrality
-        python figure_generation/scripts/centrality_housing_plots.py reporte_norte_de_santander colombia_cucuta pagerank_centrality 30 5000 2
+        python figure_generation/scripts/centrality_housing_plots.py reporte_norte_de_santander colombia_cucuta personalized_pagerank_centrality 45 500 2
         
         # Edgelist
         python figure_generation/scripts/edgelist_plots.py reporte_norte_de_santander colombia_cucuta 30 3        
