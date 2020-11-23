@@ -25,8 +25,8 @@ date_format = '%Y-%m-%d'
 # Global temp dataset
 temp_data_set_id = "download_temp"
 
-graphs_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.graph_attributes'
-nodes_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.node_attributes'
+graphs_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.graph_attributes_daily'
+nodes_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.node_attributes_daily'
 
 bogota_codes = ['CO.34','CO.33']
 palmira_codes = ['CO.34','CO.33']
