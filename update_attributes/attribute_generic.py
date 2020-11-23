@@ -79,9 +79,10 @@ class GenericWeeklyAttribute():
         
         # Extracts the sizes
         self.df_graph_sizes = utils.get_all_graph_sizes(self.client)
+        self.df_graph_sizes.date = self.df_graph_sizes.date.apply(pd.to_datetime)
         self.df_graph_sizes.set_index(['location_id','date'], inplace = True)
         
-    
+
 
     # --- Global Abstract Methods
     # -----------------------------------------------

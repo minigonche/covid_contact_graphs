@@ -17,7 +17,7 @@ property_values['attribute_name'] = 'largest_eigenvalue_weighted'
 
 # Max Support
 property_values['max_num_nodes'] = np.inf
-property_values['max_num_edges'] = 50000000 # 50 Millions
+property_values['max_num_edges'] = 20000000 # 50 Millions
 
 
 class GraphEigenValueWeighted(GenericGraphAttribute):

@@ -20,7 +20,7 @@ property_values['priority'] = 2
 
 # Max Support
 property_values['max_num_nodes'] = np.inf
-property_values['max_num_edges'] = 50000000 # 50 Millions
+property_values['max_num_edges'] = 20000000 # 20 Millions
 
 
 # Other properties
@@ -168,6 +168,8 @@ class NodePersonalizedPageRank(GenericNodeAttributeWithCases):
         # Uses the sizes
         num_edges = self.df_graph_sizes.loc[(location_id,current_date),'num_edges']
         num_nodes = self.df_graph_sizes.loc[(location_id,current_date),'num_nodes']
+
+
         
         support = num_edges <= self.max_num_edges and num_nodes <= self.max_num_nodes
         
