@@ -25,11 +25,10 @@ date_format = '%Y-%m-%d'
 # Global temp dataset
 temp_data_set_id = "download_temp"
 
-graphs_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.graph_attributes_daily'
-nodes_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.node_attributes_daily'
+graphs_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.graph_attributes'
+nodes_attribute_table = 'grafos-alcaldia-bogota.graph_attributes.node_attributes'
 
 bogota_codes = ['CO.34','CO.33']
-palmira_codes = ['CO.34','CO.33']
 
 global_accuracy = 30
 
@@ -238,6 +237,20 @@ def get_all_graph_sizes(client):
 
     return( run_simple_query(client, sql))
 
+
+def get_min_support_date_for_location_attributes(client):
+    '''
+    Gets the min date that a location is supported
+    '''
+
+    sql = f"""
+        
+        SELECT location_id, min_date
+        FROM graph_attributes.min_support_dates
+    
+    """
+
+    return( run_simple_query(client, sql))
 
 def update_bogota_sample(client, todays_date):
     '''

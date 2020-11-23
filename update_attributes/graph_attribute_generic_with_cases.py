@@ -1,6 +1,7 @@
 # Generic Graph Attribute that includes cases
 
 from graph_attribute_generic import GenericGraphAttribute
+from attribute_generic import GenericWeeklyAttribute
 import pandas as pd
 import utils
 import numpy as np
@@ -59,7 +60,12 @@ class GenericGraphAttributeWithCases(GenericGraphAttribute):
             Boolean
         '''
         
+        # Checks global
+        global_support = GenericWeeklyAttribute.location_id_supported_on_date(self, location_id, current_date)
+        
+        # Cases check
         up_to_date = pos_fun.positives_inside_date(self.client, location_id, current_date, self.df_codes, self.max_dates, self.min_dates)
         
-        return(up_to_date)
+        return(up_to_date and global_support)
+            
             

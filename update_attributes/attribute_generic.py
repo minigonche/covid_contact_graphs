@@ -76,11 +76,17 @@ class GenericWeeklyAttribute():
         self.df_locations = utils.get_current_locations(self.client)
         self.df_locations.index = self.df_locations.location_id
         
+        # Extract locations min support date
+        self.min_location_start_dates = utils.get_min_support_date_for_location_attributes(self.client)
+        self.min_location_start_dates.index = self.min_location_start_dates.location_id
+        
         
         # Extracts the sizes
         self.df_graph_sizes = utils.get_all_graph_sizes(self.client)
         self.df_graph_sizes.date = self.df_graph_sizes.date.apply(pd.to_datetime)
         self.df_graph_sizes.set_index(['location_id','date'], inplace = True)
+        
+        
         
 
 
@@ -139,8 +145,9 @@ class GenericWeeklyAttribute():
     def location_id_supported_on_date(self, location_id, current_date):
         '''
         Method that determines if the attribute is supported for the location_id (graph) on a specific date
-        The default implementation is to return True if the current date is equal or larger that the starting_date and is not inside hell week
-        Overwrite this method in case the attribute is not supported for a certain location_id (or several) at a particular date
+        The default implementation is to return True if the current date is equal or larger that the starting date of the attribute and of the location_id (if decalred in graph_attributes.min_support_dates).
+        
+        Also, num_edges and num_contacts must be bellow the defined treshod. 
     
         NOTE: This method is called several times inside a loop. Make sure you don't acces any expensive resources in the implementation.
         
@@ -151,17 +158,27 @@ class GenericWeeklyAttribute():
         returns
             Boolean
         '''
-
+        # Uses date
+        min_date = self.starting_date # Attribute date
+        
+        if location_id in self.min_location_start_dates.index:
+            min_date = max(min_date, self.min_location_start_dates.loc[location_id, 'min_date'])
+        
+        support_date = current_date >= min_date
+    
+        if not support_date:
+            print(f'               Min date is set to: {min_date.strftime("%y-%m-%d")}')
+            
         # Uses the sizes
         num_edges = self.df_graph_sizes.loc[(location_id,current_date),'num_edges']
         num_nodes = self.df_graph_sizes.loc[(location_id,current_date),'num_nodes']
         
-        support = num_edges <= self.max_num_edges and num_nodes <= self.max_num_nodes
+        support_size = num_edges <= self.max_num_edges and num_nodes <= self.max_num_nodes
         
-        if not support:
+        if not support_size:
             print(f'               Nodes: {num_nodes} and Edges: {num_edges} exceeds max: ({self.max_num_nodes},{self.max_num_edges})')
         
-        return(support)
+        return(support_size and support_date)
 
 
 

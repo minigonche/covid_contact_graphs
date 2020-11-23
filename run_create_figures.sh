@@ -31,7 +31,7 @@ else
         python figure_generation/scripts/movement_plots.py reporte_palmira 30 colombia_palmira_comuna_*
 
         # Centrality
-        python figure_generation/scripts/centrality_housing_plots.py reporte_palmira colombia_palmira pagerank_centrality 30 1000 2.5
+        python figure_generation/scripts/centrality_housing_plots.py reporte_palmira colombia_palmira personalized_pagerank_centrality 45 500 2.5
 
         # Edgelist
         python figure_generation/scripts/edgelist_plots.py reporte_palmira colombia_palmira 30 2.5
