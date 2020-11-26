@@ -48,27 +48,27 @@ class GraphNumEdges(GenericGraphAttribute):
         '''
         raise ValueError('Should not enter here')
     
-    def compute_attribute_for_interval(self, graph_id, start_date_string, end_date_string):
+    def compute_attribute_for_interval(self, location_id, start_date_string, end_date_string):
         '''
         Method that computes the attribute of the class for the given dates. Edit this method if the attributes requieres more than just the nodes and
         the ids. See weighted_pagerank for an example.
 
         parameters
-            - graph_id(str): The graph id
+            - location_id(str): The graph id
             - start_date_string (str): Start date in %Y-%m-%d
             - end_date_string (str): End date in %Y-%m-%d
 
         returns
             pd.DataFrame with the structure of the output of the method compute_attribute   
         '''
-        dataset_id = utils.get_dataset_of_location(self.client, graph_id)
+        dataset_id = utils.get_dataset_of_location(self.client, location_id)
 
         query = f"""
             SELECT COUNT(*) as num_edges
             FROM
             (
                 SELECT id1, id2
-                FROM grafos-alcaldia-bogota.{dataset_id}.{graph_id}
+                FROM grafos-alcaldia-bogota.{dataset_id}.{location_id}
                 WHERE date >= "{start_date_string}" AND date <= "{end_date_string}"
                 GROUP BY id1, id2
             )

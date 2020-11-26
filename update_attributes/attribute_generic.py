@@ -182,13 +182,13 @@ class GenericWeeklyAttribute():
 
 
 
-    def compute_attribute_for_interval(self, graph_id, start_date_string, end_date_string):
+    def compute_attribute_for_interval(self, location_id, start_date_string, end_date_string):
         '''
         Method that computes the attribute of the class for the given dates. Edit this method if the attributes requieres more than just the nodes and
         the ids. See weighted_pagerank for an example.
 
         parameters
-            - graph_id(str): The graph id
+            - location_id(str): The graph id
             - start_date_string (str): Start date in %Y-%m-%d
             - end_date_string (str): End date in %Y-%m-%d
 
@@ -197,8 +197,8 @@ class GenericWeeklyAttribute():
         '''
         
 
-        nodes = self.get_compact_nodes(graph_id, start_date_string, end_date_string)
-        edges = self.get_compact_edgelist(graph_id, start_date_string, end_date_string)
+        nodes = self.get_compact_nodes(location_id, start_date_string, end_date_string)
+        edges = self.get_compact_edgelist(location_id, start_date_string, end_date_string)
 
         return(self.compute_attribute(nodes, edges))
 
@@ -206,14 +206,14 @@ class GenericWeeklyAttribute():
     # -----------------------------------------------
     
     # For next iteration
-    def save_attribute_for_date(self, graph_id, date_string):
+    def save_attribute_for_date(self, location_id, date_string):
         '''
         Method that computes the attribute for a given date and savess it in the database.
         For each date the previuos seven days are taken
 
 
         params
-            - graph_id(str): The graph id
+            - location_id(str): The graph id
             - date_string (str): Date in the format yyyy-mm-dd
 
         generates
@@ -223,13 +223,13 @@ class GenericWeeklyAttribute():
 
         raise NotImplementedError
         
-    def save_attribute_for_week(self, graph_id, year, week):
+    def save_attribute_for_week(self, location_id, year, week):
         '''
         Method that computes the attribute for a given week and savess it in the database.
         All weeks are saved as the sunday and the go from monday to sunday.
 
         params
-            - graph_id(str): The graph id
+            - location_id(str): The graph id
             - date_string (str): Date in the format yyyy-mm-dd
 
         generates
@@ -242,12 +242,12 @@ class GenericWeeklyAttribute():
 
     # -- Other Methods
     # -----------------------------------------------
-    def get_complete_edgelist(self, graph_id, start_date_string, end_date_string):
+    def get_complete_edgelist(self, location_id, start_date_string, end_date_string):
         '''
         Method that gets the edgelist of the location. Both dates are inclusive
 
         parameters
-            graph_id(str): The graph id        
+            location_id(str): The graph id        
             start_date_string (str): Start date in %Y-%m-%d
             end_date_string (str): End date in %Y-%m-%d
 
@@ -255,12 +255,12 @@ class GenericWeeklyAttribute():
             pd.DataFrame with the ungrouped edglist. It has the same structure as the edglist table
         '''
 
-        dataset_id = utils.get_dataset_of_location(self.client, graph_id)
+        dataset_id = utils.get_dataset_of_location(self.client, location_id)
 
         query = f"""
 
             SELECT *
-            FROM grafos-alcaldia-bogota.{dataset_id}.{graph_id}
+            FROM grafos-alcaldia-bogota.{dataset_id}.{location_id}
             WHERE date >= "{start_date_string}" AND date <= "{end_date_string}"
 
         """
@@ -273,12 +273,12 @@ class GenericWeeklyAttribute():
 
         return(df)
 
-    def get_compact_edgelist(self, graph_id, start_date_string, end_date_string):
+    def get_compact_edgelist(self, location_id, start_date_string, end_date_string):
         '''
         Method that gets the compact edgelist of the location. Both dates are inclusive
 
         parameters
-            graph_id(str): The graph id        
+            location_id(str): The graph id        
             start_date_string (str): Start date in %Y-%m-%d
             end_date_string (str): End date in %Y-%m-%d
 
@@ -288,12 +288,12 @@ class GenericWeeklyAttribute():
                 - id2 (str)
                 - weight (num) : sum of contacts
         '''
-        dataset_id = utils.get_dataset_of_location(self.client, graph_id)
+        dataset_id = utils.get_dataset_of_location(self.client, location_id)
 
         query = f"""
 
             SELECT id1, id2, COUNT(*) as weight, SUM(contacts) as total_contacts
-            FROM grafos-alcaldia-bogota.{dataset_id}.{graph_id}
+            FROM grafos-alcaldia-bogota.{dataset_id}.{location_id}
             WHERE date >= "{start_date_string}" AND date <= "{end_date_string}"
             GROUP BY id1, id2
 
@@ -310,12 +310,12 @@ class GenericWeeklyAttribute():
 
 
 
-    def get_complete_nodes(self, graph_id, start_date_string, end_date_string):
+    def get_complete_nodes(self, location_id, start_date_string, end_date_string):
         '''
         Method that extracts the ungrouped transits (nodes) given the location id
 
         parameters
-            graph_id(str): The graph id        
+            location_id(str): The graph id        
             start_date_string (str): Start date in %Y-%m-%d
             end_date_string (str): End date in %Y-%m-%d
 
@@ -328,7 +328,7 @@ class GenericWeeklyAttribute():
 
             SELECT *
             FROM grafos-alcaldia-bogota.transits.hourly_transits
-            WHERE location_id = "{graph_id}" 
+            WHERE location_id = "{location_id}" 
                   AND date >= "{start_date_string}"
                   AND date <= "{end_date_string}"
 
@@ -345,12 +345,12 @@ class GenericWeeklyAttribute():
 
 
 
-    def get_compact_nodes(self, graph_id, start_date_string, end_date_string):
+    def get_compact_nodes(self, location_id, start_date_string, end_date_string):
         '''
         Method that extracts the grouped transits (nodes) given the location id
 
         parameters
-            - graph_id(str): The graph id
+            - location_id(str): The graph id
             - start_date_string (str): Start date in %Y-%m-%d
             - end_date_string (str): End date in %Y-%m-%d
 
@@ -365,7 +365,7 @@ class GenericWeeklyAttribute():
 
             SELECT identifier, SUM(total_transits) as weight
             FROM grafos-alcaldia-bogota.transits.hourly_transits
-            WHERE location_id = "{graph_id}"
+            WHERE location_id = "{location_id}"
                   AND date >= "{start_date_string}" 
                   AND date <= "{end_date_string}"
 

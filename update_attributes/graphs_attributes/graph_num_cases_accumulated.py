@@ -80,13 +80,13 @@ class GraphNumberOfCasesAccumulated(GenericGraphAttributeWithCases):
         raise ValueError('Should not enter here')
     
     
-    def compute_attribute_for_interval(self, graph_id, start_date_string, end_date_string):
+    def compute_attribute_for_interval(self, location_id, start_date_string, end_date_string):
         '''
         Method that computes the attribute of the class for the given dates. Edit this method if the attributes requieres more than just the nodes and
         the ids. See weighted_pagerank for an example.
 
         parameters
-            - graph_id(str): The graph id
+            - location_id(str): The graph id
             - start_date_string (str): Start date in %Y-%m-%d
             - end_date_string (str): End date in %Y-%m-%d
 
@@ -94,13 +94,13 @@ class GraphNumberOfCasesAccumulated(GenericGraphAttributeWithCases):
             pd.DataFrame with the structure of the output of the method compute_attribute   
         '''
            
-        city = utils.get_city(self.client, graph_id, self.df_codes)
+        city = utils.get_city(self.client, location_id, self.df_codes)
                 
         if city == utils.BOGOTA:
-            query = bogota_sql.format(end_date_string = end_date_string, location_id = graph_id)
+            query = bogota_sql.format(end_date_string = end_date_string, location_id = location_id)
             
         else:
-            query = generic_sql.format(table_name = city, end_date_string = end_date_string, location_id = graph_id)
+            query = generic_sql.format(table_name = city, end_date_string = end_date_string, location_id = location_id)
             
         # Computes the total
         response = utils.run_simple_query(self.client, query)

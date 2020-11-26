@@ -29,7 +29,7 @@ generic_sql = """
         graph_ids as (
              SELECT identifier
              FROM grafos-alcaldia-bogota.transits.hourly_transits
-             WHERE location_id = "{graph_id}"
+             WHERE location_id = "{location_id}"
                    AND date <= "{end_date_string}"
                    AND date >  DATE_SUB(DATE("{end_date_string}"), INTERVAL 7 DAY) -- Los transitos de la ultima semana
              GROUP BY identifier
@@ -80,7 +80,7 @@ bogota_sql = """
                 graph_ids as (
                      SELECT identifier
                      FROM grafos-alcaldia-bogota.transits.hourly_transits
-                     WHERE location_id = "{graph_id}"
+                     WHERE location_id = "{location_id}"
                            AND date <= "{end_date_string}"
                            AND date >  DATE_SUB(DATE("{end_date_string}"), INTERVAL 7 DAY) -- Los transitos de la ultima semana
                      GROUP BY identifier
@@ -164,13 +164,13 @@ class NodeDistanceToInfected(GenericNodeAttributeWithCases):
     
 
     
-    def compute_attribute_for_interval(self, graph_id, start_date_string, end_date_string):
+    def compute_attribute_for_interval(self, location_id, start_date_string, end_date_string):
         '''
         Method that computes the attribute of the class for the given dates. Edit this method if the attributes requieres more than just the nodes and
         the ids. See weighted_pagerank for an example.
 
         parameters
-            - graph_id(str): The graph id
+            - location_id(str): The graph id
             - start_date_string (str): Start date in %Y-%m-%d
             - end_date_string (str): End date in %Y-%m-%d
 
@@ -178,13 +178,13 @@ class NodeDistanceToInfected(GenericNodeAttributeWithCases):
             pd.DataFrame with the structure of the output of the method compute_attribute   
         '''
         
-        city = utils.get_city(self.client, graph_id, self.df_codes)
+        city = utils.get_city(self.client, location_id, self.df_codes)
         
         if city == utils.BOGOTA:
-            query = bogota_sql.format(graph_id = graph_id, start_date_string = start_date_string, end_date_string = end_date_string)
+            query = bogota_sql.format(location_id = location_id, start_date_string = start_date_string, end_date_string = end_date_string)
             
         else:
-            query = generic_sql.format(table_name = city, graph_id = graph_id, start_date_string = start_date_string, end_date_string = end_date_string)
+            query = generic_sql.format(table_name = city, location_id = location_id, start_date_string = start_date_string, end_date_string = end_date_string)
             
         # Compute Weights
         nodes = utils.run_simple_query(self.client, query, allow_large_results = True)

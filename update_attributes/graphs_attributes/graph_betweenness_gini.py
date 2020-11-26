@@ -55,13 +55,13 @@ class GraphBetweennessGini(GenericGraphAttribute):
     
     
     
-    def compute_attribute_for_interval(self, graph_id, start_date_string, end_date_string):
+    def compute_attribute_for_interval(self, location_id, start_date_string, end_date_string):
         '''
         Method that computes the attribute of the class for the given dates. Edit this method if the attributes requieres more than just the nodes and
         the ids. See weighted_pagerank for an example.
 
         parameters
-            - graph_id(str): The graph id
+            - location_id(str): The graph id
             - start_date_string (str): Start date in %Y-%m-%d
             - end_date_string (str): End date in %Y-%m-%d
 
@@ -72,13 +72,13 @@ class GraphBetweennessGini(GenericGraphAttribute):
         query = f"""
             SELECT location_id, identifier, attribute_name, attribute_value
             FROM {utils.nodes_attribute_table}
-            WHERE location_id = "{graph_id}" AND attribute_name = "betweenness_centrality" AND date = "{end_date_string}"
+            WHERE location_id = "{location_id}" AND attribute_name = "betweenness_centrality" AND date = "{end_date_string}"
         """
         
         df = utils.run_simple_query(self.client, query)
         
         if df.shape[0] == 0:
-            print('             ' + f'No Betweeness Centrality found for {graph_id} on {end_date_string}')
+            print('             ' + f'No Betweeness Centrality found for {location_id} on {end_date_string}')
             return(pd.DataFrame({'value':None, 'attribute_name':[self.attribute_name] }))
         
         

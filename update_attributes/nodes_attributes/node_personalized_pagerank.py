@@ -72,13 +72,13 @@ class NodePersonalizedPageRank(GenericNodeAttributeWithCases):
     
 
     
-    def compute_attribute_for_interval(self, graph_id, start_date_string, end_date_string):
+    def compute_attribute_for_interval(self, location_id, start_date_string, end_date_string):
         '''
         Method that computes the attribute of the class for the given dates. Edit this method if the attributes requieres more than just the nodes and
         the ids. See weighted_pagerank for an example.
 
         parameters
-            - graph_id(str): The graph id
+            - location_id(str): The graph id
             - start_date_string (str): Start date in %Y-%m-%d
             - end_date_string (str): End date in %Y-%m-%d
 
@@ -89,7 +89,7 @@ class NodePersonalizedPageRank(GenericNodeAttributeWithCases):
         query = f"""
              SELECT identifier, attribute_value as distance_to_infected
                 FROM {utils.nodes_attribute_table}
-                WHERE location_id = '{graph_id}'
+                WHERE location_id = '{location_id}'
                     AND date = '{end_date_string}'
         """
         
@@ -97,7 +97,7 @@ class NodePersonalizedPageRank(GenericNodeAttributeWithCases):
         df_distances = utils.run_simple_query(self.client, query, allow_large_results = True)
         
         if df_distances.shape[0] == 0:
-            raise ValueError(f'No distance to infected found for {graph_id} on {end_date_string}. Please compute it!')
+            raise ValueError(f'No distance to infected found for {location_id} on {end_date_string}. Please compute it!')
         
         # Sets Nones
         df_distances.fillna(np.inf, inplace = True)
@@ -107,7 +107,7 @@ class NodePersonalizedPageRank(GenericNodeAttributeWithCases):
          
         
         # Nodes
-        nodes = self.get_compact_nodes(graph_id, start_date_string, end_date_string)
+        nodes = self.get_compact_nodes(location_id, start_date_string, end_date_string)
         
         # Merges with weights        
         nodes = nodes.merge(df_distances, on = 'identifier', how = 'left')
@@ -115,7 +115,7 @@ class NodePersonalizedPageRank(GenericNodeAttributeWithCases):
         nodes.fillna(0, inplace = True)
         
         # Edges               
-        edges = self.get_compact_edgelist(graph_id, start_date_string, end_date_string)    
+        edges = self.get_compact_edgelist(location_id, start_date_string, end_date_string)    
         
         # Create the graph
         G = ig.Graph()

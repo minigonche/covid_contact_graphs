@@ -54,13 +54,13 @@ class GraphNumberOfContacts(GenericGraphAttribute):
         raise ValueError('Should not enter here')
     
     
-    def compute_attribute_for_interval(self, graph_id, start_date_string, end_date_string):
+    def compute_attribute_for_interval(self, location_id, start_date_string, end_date_string):
         '''
         Method that computes the attribute of the class for the given dates. Edit this method if the attributes requieres more than just the nodes and
         the ids. See weighted_pagerank for an example.
 
         parameters
-            - graph_id(str): The graph id
+            - location_id(str): The graph id
             - start_date_string (str): Start date in %Y-%m-%d
             - end_date_string (str): End date in %Y-%m-%d
 
@@ -68,11 +68,11 @@ class GraphNumberOfContacts(GenericGraphAttribute):
             pd.DataFrame with the structure of the output of the method compute_attribute   
         '''
                 
-        datset_id = self.df_locations.loc[graph_id, 'dataset']
+        datset_id = self.df_locations.loc[location_id, 'dataset']
         
         query = f"""
             SELECT COUNT(*) as num_contacts
-            FROM grafos-alcaldia-bogota.{datset_id}.{graph_id}
+            FROM grafos-alcaldia-bogota.{datset_id}.{location_id}
             WHERE date >= "{start_date_string}" AND date <= "{end_date_string}"
         """
         

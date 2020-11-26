@@ -18,14 +18,14 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
 
 
     # For next implementation
-    def save_attribute_for_date(self, graph_id, date_string):
+    def save_attribute_for_date(self, location_id, date_string):
         '''
         Method that computes the attribute for a given week and savess it in the database.
         All weeks are saved as the sunday and the go from monday to sunday.
 
 
         params
-            - graph_id(str): The graph id
+            - location_id(str): The graph id
             - date_string (str): Date in the format yyyy-mm-dd
 
         generates
@@ -33,7 +33,7 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
             - Exception if the the result does not contain the defined  strucure. See GenericWeeklyAttribute.compute_attribute
         '''
 
-        if utils.graph_attribute_exists(self.client, graph_id, self.attribute_name, date_string):
+        if utils.graph_attribute_exists(self.client, location_id, self.attribute_name, date_string):
             raise ValueError(f'Attribute: {self.attribute_name} already exists for {date_string}')
 
         # Goes back the window
@@ -42,7 +42,7 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
         end_date_string = date_string
 
         # Computes
-        df_result = self.compute_attribute_for_interval(graph_id, start_date_string, end_date_string)
+        df_result = self.compute_attribute_for_interval(location_id, start_date_string, end_date_string)
 
         if 'value' not in df_result.columns:
             raise ValueError(f'The column "value" was not found in the columns {df_result.columns}')
@@ -53,9 +53,9 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
             
         df_result.rename(columns = {'value':'attribute_value'}, inplace = True)
         # Adds the columns
-        df_result['location_id'] = graph_id
+        df_result['location_id'] = location_id
         df_result['date'] = date_string
-        df_result['type'] = self.df_locations.loc[graph_id, 'type']
+        df_result['type'] = self.df_locations.loc[location_id, 'type']
     
         df_result = df_result[['location_id','date','attribute_name','attribute_value','type']]
         
@@ -69,14 +69,14 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
         utils.insert_graphs_attributes(self.client, df_result)
 
         
-    def save_attribute_for_week(self, graph_id, year, week):
+    def save_attribute_for_week(self, location_id, year, week):
         '''
         Method that computes the attribute for a given week and savess it in the database.
         All weeks are saved as the sunday and the go from monday to sunday.
 
 
         params
-            - graph_id(str): The graph id
+            - location_id(str): The graph id
             - year (int): The year to compute the attribute, this shit could go until 2021
             - week (int): The week of the year to compute
 
@@ -88,7 +88,7 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
         date_time = utils.get_date_of_week(year, week)
         date_string = date_time.strftime( utils.date_format)
 
-        if utils.graph_attribute_exists(self.client, graph_id, self.attribute_name, date_string):
+        if utils.graph_attribute_exists(self.client, location_id, self.attribute_name, date_string):
             raise ValueError(f'Attribute: {self.attribute_name} already exists for {date_string}')
 
 
@@ -97,7 +97,7 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
         end_date_string = date_string
 
         # Computes
-        df_result = self.compute_attribute_for_interval(graph_id, start_date_string, end_date_string)
+        df_result = self.compute_attribute_for_interval(location_id, start_date_string, end_date_string)
 
         if 'value' not in df_result.columns:
             raise ValueError(f'The column "value" was not found in the columns {df_result.columns}')
@@ -108,9 +108,9 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
             
         df_result.rename(columns = {'value':'attribute_value'}, inplace = True)
         # Adds the columns
-        df_result['location_id'] = graph_id
+        df_result['location_id'] = location_id
         df_result['date'] = date_string
-        df_result['type'] = self.df_locations.loc[graph_id, 'type']
+        df_result['type'] = self.df_locations.loc[location_id, 'type']
     
         df_result = df_result[['location_id','date','attribute_name','attribute_value','type']].copy()
         
