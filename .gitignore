@@ -12,6 +12,8 @@ interventions/config_constants.py
 edge_detection/
 cases_uploads/
 polygons_uploads/
+case_selection/
+polygon_inspection_for_support/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

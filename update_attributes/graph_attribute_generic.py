@@ -112,7 +112,7 @@ class GenericGraphAttribute(GenericWeeklyAttribute):
         df_result['date'] = date_string
         df_result['type'] = self.df_locations.loc[graph_id, 'type']
     
-        df_result = df_result[['location_id','date','attribute_name','attribute_value','type']]
+        df_result = df_result[['location_id','date','attribute_name','attribute_value','type']].copy()
         
         # Sets the types
         df_result.location_id = df_result.location_id.astype(str)

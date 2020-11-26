@@ -148,6 +148,21 @@ def get_current_locations_complete(client, only_active = True):
     return( run_simple_query(client, sql))
 
 
+def get_current_locations_for_attributes(client):
+    '''
+    Gets all the current locations
+    '''
+    
+
+    sql = f"""
+        SELECT location_id, name, precision, dataset, type
+        FROM grafos-alcaldia-bogota.geo.locations_geometries
+        WHERE attribute_active = TRUE
+        GROUP BY location_id, name, precision, dataset, type
+      """
+
+    return( run_simple_query(client, sql))
+
 
 # Is in different locations ids
 # ----------------

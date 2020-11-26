@@ -45,14 +45,11 @@ import graphs_attributes.graph_avg_distance_to_infected as graph_avg_distance_to
 # Include here the desired node attributes
 # ------------------------------------
 all_node_attributes = []
-all_node_attributes.append(node_distance_to_infected.NodeDistanceToInfected())
 all_node_attributes.append(node_degree.NodeDegree())
 all_node_attributes.append(node_pagerank.NodePageRank())
 all_node_attributes.append(node_eigenvector.NodeEigenvector())
+all_node_attributes.append(node_distance_to_infected.NodeDistanceToInfected())
 all_node_attributes.append(node_personalized_pagerank.NodePersonalizedPageRank())
-#all_node_attributes.append(node_betweenness.NodeBetweenness())
-
-
 
 # Include here the desired graph attributes
 # ------------------------------------
@@ -64,13 +61,12 @@ all_graph_attributes.append(graph_num_contacts.GraphNumberOfContacts())
 all_graph_attributes.append(graph_pagerank_gini.GraphPageRankGini())
 all_graph_attributes.append(graph_eigenvector_gini.GraphEigenvectorGini())
 all_graph_attributes.append(graph_personalized_pagerank_gini.GraphPersonalizedPageRankGini())
-all_graph_attributes.append(graph_powerlaw_degree_test.GraphPowerLawTest())
-all_graph_attributes.append(graph_eigenvalue_unweighted.GraphEigenValueUnweighted())
-all_graph_attributes.append(graph_eigenvalue_weighted.GraphEigenValueWeighted())
-all_graph_attributes.append(graph_transitivity.GraphTransitivity())
+#all_graph_attributes.append(graph_powerlaw_degree_test.GraphPowerLawTest())
+#all_graph_attributes.append(graph_eigenvalue_unweighted.GraphEigenValueUnweighted())
+#all_graph_attributes.append(graph_eigenvalue_weighted.GraphEigenValueWeighted())
+#all_graph_attributes.append(graph_transitivity.GraphTransitivity())
 all_graph_attributes.append(graph_num_cases_accumulated.GraphNumberOfCasesAccumulated())
 
-#all_graph_attributes.append(graph_betweenness_gini.GraphBetweennessGini())
 
 
 # Orders the list by priority
@@ -82,22 +78,19 @@ all_node_attributes = (np.array(all_node_attributes)[np.argsort(node_order)]).to
 graph_order = [elem.priority for elem in all_graph_attributes]
 all_graph_attributes = (np.array(all_graph_attributes)[np.argsort(graph_order)]).tolist()
 
-print(node_distance_to_infected.NodeDistanceToInfected().priority)
-print(all_node_attributes)
-print(all_graph_attributes)
 
 def main():
     
 
     # Extracts the current date
-    # Extracts the current date. Substract one day and the goes back to the closest sunday
     end_date = utils.get_today(only_date = True) - timedelta(days = 1)
-    while end_date.dayofweek != 6:
-        end_date = end_date - timedelta(days = 1)         
-
+    
+    # DEBUG
+    #end_date = pd.to_datetime('2020-11-08')
+ 
     # Extracts the locations
     client = bigquery.Client(location="US")
-    df_locations_all = utils.get_current_locations(client)
+    df_locations_all = utils.get_current_locations_for_attributes(client)
     
     # Nodes
     df_att_all = utils.get_max_dates_for_node_attributes(client)
@@ -121,7 +114,10 @@ def main():
         df_current = df_current[df_current.location_id.apply(lambda l: n_att.location_id_supported(l))]
 
         # Filters out
-        selected = df_current[(df_current.max_date.isna()) | (df_current.max_date < end_date)]
+        selected = df_current[(df_current.max_date.isna()) | (df_current.max_date < end_date)].copy()
+        
+        # Transforms the date into datetime (bug?)
+        selected.max_date = selected.max_date.apply(pd.to_datetime)
 
         print(f'      Found {selected.shape[0]}')
         
@@ -133,21 +129,20 @@ def main():
             if pd.isna(row.max_date):
                 start_date = n_att.starting_date
             else:
-                start_date = row.max_date + timedelta(days = 7) # Next sunday
+                start_date = row.max_date + timedelta(days = 1) # Next Day
 
-            print(f'         Calculating for {row.location_id} ({i} of {selected.shape[0]}), from: {start_date} to {end_date}')
+            print(f'         Calculating { n_att.attribute_name} for {row.location_id} ({i} of {selected.shape[0]}), from: {start_date} to {end_date}')
 
             current_date = start_date
             while current_date <= end_date:
 
                 if n_att.location_id_supported_on_date(row.location_id, current_date):
-                    year, week = utils.get_year_and_week_of_date(current_date)
-                    n_att.save_attribute_for_week(row.location_id, year, week)
+                    n_att.save_attribute_for_date(row.location_id, current_date.strftime( utils.date_format))
                     print(f'            {current_date}: OK.')
                 else:
                     print(f'            {current_date}: Skipped by implementation.')
 
-                current_date = current_date + timedelta(days = 7)
+                current_date = current_date + timedelta(days = 1)
             
             print(f'   Elapsed Time: {np.round((time.time() - start_time)/3600,3)} hours')
 
@@ -189,21 +184,20 @@ def main():
             if pd.isna(row.max_date):
                 start_date = g_att.starting_date
             else:
-                start_date = pd.to_datetime(row.max_date) + timedelta(days = 7) # Next sunday
+                start_date = pd.to_datetime(row.max_date) + timedelta(days = 1) # Next Day
 
-            print(f'         Calculating for {row.location_id} ({i} of {selected.shape[0]}), from: {start_date.date()} to {end_date.date()}')
+            print(f'         Calculating { g_att.attribute_name} for {row.location_id} ({i} of {selected.shape[0]}), from: {start_date.date()} to {end_date.date()}')
 
             current_date = start_date
             while current_date <= end_date:
 
-                if g_att.location_id_supported_on_date(row.location_id, current_date):
-                    year, week = utils.get_year_and_week_of_date(current_date)
-                    g_att.save_attribute_for_week(row.location_id, year, week)
+                if g_att.location_id_supported_on_date(row.location_id, current_date):                 
+                    g_att.save_attribute_for_date(row.location_id, current_date.strftime( utils.date_format))
                     print(f'            {current_date.date()}: OK.')
                 else:
                     print(f'            {current_date.date()}: Skipped by implementation.')
 
-                current_date = current_date + timedelta(days = 7)
+                current_date = current_date + timedelta(days = 1)
             
             print(f'   Elapsed Time: {np.round((time.time() - start_time)/3600,3)} hours')
             
