@@ -120,7 +120,6 @@ def main(report_name, locations_id, dataset_id, min_date, max_date, dif = None, 
         df_locations_pagerank = df_locations_pagerank[(np.abs(df_locations_pagerank.lon - df_locations_pagerank.lon.mean()) < dif*df_locations_pagerank.lon.std()) & (np.abs(df_locations_pagerank.lat - df_locations_pagerank.lat.mean()) < dif*df_locations_pagerank.lat.std())].copy()
 
 
-    print(df_locations_pagerank.shape)
     # NUM CONTACTS
     # ---------------------------
     # Calculate top places with more contacts
@@ -178,14 +177,34 @@ def main(report_name, locations_id, dataset_id, min_date, max_date, dif = None, 
         geo_pagerank_trace = filter(geo_pagerank_trace, min_lat, max_lat, min_lon, max_lon)
         geo_locations = filter(geo_locations, min_lat, max_lat, min_lon, max_lon)
 
-
-    ax = geo_pagerank_trace.plot(figsize=(12, 12), alpha=0.1, markersize = 17, color = 'green')
-    geo_pagerank.plot(alpha=1, markersize = 35, color = 'blue', ax = ax)
-    geo_locations.plot(alpha=1, markersize = 35, color = 'red', ax = ax)
+        
+    ax = geo_pagerank_trace.plot(figsize=(12, 12), alpha=0.1, markersize = 17, color = 'green', label = 'Pagrank (Traza)')
+    geo_pagerank.plot(alpha=1, markersize = 35, color = 'blue', ax = ax, label = 'Pagrank (Top)')
+    geo_locations.plot(alpha=1, markersize = 35, color = 'red', ax = ax, label = 'Contactos (Top)')
     ctx.add_basemap(ax, source=ctx.providers.OpenTopoMap)
     ax.set_axis_off()
-    ax.figure.savefig(os.path.join(export_folder_location, 'edge_detection.png'))
+    ax.set_title(f'Superdispersión ({min_date.strftime(date_format)} - {max_date.strftime(date_format)})')
+    ax.legend()
+    ax.figure.savefig(os.path.join(export_folder_location, 'edge_detection.png'), dpi = 150)
+    
+    
+    df_pagerank = geo_pagerank.to_crs(epsg=4326)[['geometry']]
+    df_pagerank['tipo'] = 'Pagerank Top'
+    
+    df_contactos = geo_locations.to_crs(epsg=4326)[['geometry']]
+    df_contactos['tipo'] = 'Contactos Top'    
 
+    df_pagerank_trace = geo_pagerank_trace.to_crs(epsg=4326)[['geometry']]
+    df_pagerank_trace['tipo'] = 'Pagerank Traza'
+    
+    df_export = pd.concat((df_pagerank, df_contactos, df_pagerank_trace), ignore_index = False)
+    df_export['lon'] = df_export.geometry.x
+    df_export['lat'] = df_export.geometry.y
+    
+    df_export.to_csv(os.path.join(export_folder_location, 'edge_detection.csv'), index = False)
+    
+    
+    
 if __name__ == "__main__":
 
     # Reads the parameters from excecution
@@ -207,6 +226,7 @@ if __name__ == "__main__":
         gdf_polygon = None
 
     max_date =  pd.to_datetime(datetime.today()) # max date
+    #max_date =  pd.to_datetime("2020-11-30")
     min_date = max_date - timedelta(days = num_days_back)
 
     weighted = False

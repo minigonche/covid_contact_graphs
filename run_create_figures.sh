@@ -36,6 +36,20 @@ else
         # Edgelist
         python figure_generation/scripts/edgelist_plots.py reporte_palmira colombia_palmira 30 2.5
 
+    elif [ "$1" = "ALL" ] || [ "$1" = "bogota" ] 
+        then
+        echo 'Bogotá'
+
+        # Bogota
+        # Transits Housing
+        python figure_generation/scripts/transits_housing_plots.py reporte_bogota 30 colombia_bogota
+
+        # Centrality
+        python figure_generation/scripts/centrality_housing_plots.py reporte_bogota colombia_bogota personalized_pagerank_centrality 45 500 2.5
+
+        # Edgelist
+        python figure_generation/scripts/edgelist_plots.py reporte_bogota colombia_bogota 20 2.5
+        
     elif [ "$1" = "ALL" ] || [ "$1" = "ibague" ] 
         then
         echo 'Ibague'

@@ -18,6 +18,10 @@ def main():
 
     # All locations
     df_locations = utils.get_current_locations(client)
+
+    # Min Support Dates
+    df_min_support_date = utils.get_min_support_date_for_location_attributes(client)
+    df_min_support_date.index = df_min_support_date.location_id   
     
     # max dates
     df_locations_mov = utils.get_max_dates_for_graph_movement(client)
@@ -41,10 +45,14 @@ def main():
         i += 1
         print(f'   Computing { row.location_id}')
 
-        if pd.isna(row.max_date):
-            start_date = utils.global_min_date
-        else:
-            start_date = row.max_date + timedelta(days = 1) # Next day
+        start_date = utils.global_min_date
+        
+        # Checks for min support
+        if location_id in df_min_support_date.index:
+            start_date = pd.to_datetime(df_min_support_date.loc[location_id,'min_date'])
+            
+        if not pd.isna(row.max_date):
+            start_date = row.max_date + timedelta(days = 1) # Next Day
 
         print(f'      Calculating for {row.location_id} ({i} of {df_locations.shape[0]}), from: {start_date} to {end_date}')
 

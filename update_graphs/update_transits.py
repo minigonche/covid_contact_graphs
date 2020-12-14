@@ -21,6 +21,10 @@ def main():
 
     # Locations
     df_locations = utils.get_current_locations(client)
+    
+    # Min Support Date
+    df_min_support_date = utils.get_min_support_date_for_location_attributes(client)
+    df_min_support_date.index = df_min_support_date.location_id
 
     # Merges
     df_locations = df_locations.merge(df_transits, on = 'location_id', how = 'left')
@@ -42,17 +46,22 @@ def main():
     for ind, row in selected.iterrows():
         # Counter
         i += 1
-
+        
+        # Location 
+        location_id = row.location_id
+        
         # Start date
         start_date =  utils.global_min_date.strftime( utils.date_format)
+        
+        # Checks if min support
+        if location_id in df_min_support_date.index:
+            start_date = pd.to_datetime(df_min_support_date.loc[location_id,'min_date']).strftime(utils.date_format)
+        
         if not pd.isna(row.max_date):
             start_date = (pd.to_datetime(row.max_date) + timedelta(days = 1)).strftime(utils.date_format)
 
         # Today
         end_date = today.strftime( utils.date_format)
-
-        # Location 
-        location_id = row.location_id
 
         print(f'   Excecuting: {location_id} ({i} of {total_locations})')
 

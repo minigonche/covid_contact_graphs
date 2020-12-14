@@ -26,6 +26,10 @@ def main():
     # Filters out
     selected = df_locations[(df_locations.end_date.isna()) | (df_locations.end_date + timedelta(days = 1) < today)] # Substracts one day so that it does not compute partial days
     
+    # Min Support Date
+    df_min_support_date = utils.get_min_support_date_for_location_attributes(client)
+    df_min_support_date.index = df_min_support_date.location_id    
+    
     start_time = time.time()
     print('Started')
 
@@ -58,6 +62,11 @@ def main():
         
         # Start date
         curent_date = utils.global_min_date.date()
+        
+        # Checks for min support
+        if location_id in df_min_support_date.index:
+            curent_date = pd.to_datetime(df_min_support_date.loc[location_id,'min_date'])
+            
         if not pd.isna(row.end_date):
             curent_date = (pd.to_datetime(row.end_date) + timedelta(days = 1))
 

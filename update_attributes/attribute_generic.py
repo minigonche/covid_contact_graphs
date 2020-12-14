@@ -168,6 +168,7 @@ class GenericWeeklyAttribute():
     
         if not support_date:
             print(f'               Min date is set to: {min_date.strftime("%y-%m-%d")}')
+            return(False)
             
         # Uses the sizes
         num_edges = self.df_graph_sizes.loc[(location_id,current_date),'num_edges']
