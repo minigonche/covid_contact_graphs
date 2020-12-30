@@ -22,8 +22,6 @@ import nodes_attributes.node_betweenness as node_betweenness
 import nodes_attributes.node_eigenvector as node_eigenvector
 import nodes_attributes.node_personalized_pagerank as node_personalized_pagerank
 
-
-
 # Graphs
 import graphs_attributes.graph_size as graph_size
 import graphs_attributes.graph_num_edges as graph_num_edges
@@ -40,7 +38,11 @@ import graphs_attributes.graph_num_cases_accumulated as graph_num_cases_accumula
 import graphs_attributes.graph_avg_distance_to_infected as graph_avg_distance_to_infected
 
 
-
+# Recompute list. Must think about integrating to database as table
+recompute_list = ["colombia_bogota_study_1",
+                  "colombia_bogota_study_2", 
+                  "colombia_bogota_study_3",
+                  "colombia_bogota_study_4"]
 
 # Include here the desired node attributes
 # ------------------------------------
@@ -94,6 +96,10 @@ def main():
     
     # Nodes
     df_att_all = utils.get_max_dates_for_node_attributes(client)
+    
+    # Check need to recompute
+    for location in recompute_list:
+        df_att_all.loc[location, 'max_date'] = None
 
     print(f'Computing {len(all_node_attributes)} Node Attributes')
     # Excecutes all the Node attributes
@@ -155,6 +161,10 @@ def main():
     
     # Graphs
     df_att_all = utils.get_max_dates_for_graph_attributes(client)
+    
+    # Check need to recompute
+    for location in recompute_list:
+        df_att_all.loc[location, 'max_date'] = None
 
     print(f'Computing {len(all_graph_attributes)} Graphs Attributes')
     # Excecutes all the graph attributes
@@ -201,14 +211,11 @@ def main():
             
             print(f'   Elapsed Time: {np.round((time.time() - start_time)/3600,3)} hours')
             
-
     print()
     print('Completed Graphs Attribute')
     print('---------------------------------------')
     print('')
-
     print('All Done')
-
 
 
 if __name__ == "__main__":

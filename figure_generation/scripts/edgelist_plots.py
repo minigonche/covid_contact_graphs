@@ -208,8 +208,8 @@ def main(report_name, locations_id, dataset_id, min_date, max_date, dif = None, 
 if __name__ == "__main__":
 
     # Reads the parameters from excecution
-    report_name  = sys.argv[1] # report name
-    location_id = sys.argv[2]
+    report_name   = sys.argv[1] # report name
+    location_id   = sys.argv[2]
     num_days_back = int(sys.argv[3]) # num_days_back
 
     if len(sys.argv) > 4:
@@ -233,5 +233,3 @@ if __name__ == "__main__":
     dataset_id = 'edgelists_cities'
 
     main(report_name, location_id, dataset_id, min_date, max_date, dif, gdf_polygon)
-
-    

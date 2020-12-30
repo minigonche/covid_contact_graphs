@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 import utils.excecution_functions as ef
-import config_constants as con
+import constants as con
 
 # Constants
 scripts = ["movement.py", "graph_attributes.py", "contacts.py"] 

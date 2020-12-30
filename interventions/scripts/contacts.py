@@ -13,7 +13,7 @@ from google.cloud import bigquery
 import utils.general_functions as ge
 
 # Gets config
-import config_constants as con
+# import config_constants as con
 import constants as const
 
 # Starts the client
@@ -73,7 +73,7 @@ data_name_trtm = df_database.at[0, "name"]
 data_name_trtm = ge.clean_for_publication(data_name_trtm)
 
 # export location
-export_folder_location = os.path.join(con.reports_folder_location, report_name, con.figure_folder_name)
+export_folder_location = os.path.join(const.reports_folder_location, report_name, const.figure_folder_name)
 if not os.path.exists(export_folder_location):
     os.makedirs(export_folder_location)
     

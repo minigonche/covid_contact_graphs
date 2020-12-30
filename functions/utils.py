@@ -36,6 +36,7 @@ global_attribute_window = 7
 
 # CITY codes
 BOGOTA = "bogota"
+    
 
 def get_today(only_date = False):
     '''
@@ -1332,7 +1333,8 @@ def get_max_date_for_graph_table(client, dataset, graph_name, min_date = None):
     if pd.isna(max_date) and not pd.isna(min_date):
         print(f'Error in: {graph_name}. No max date found after: {min_date}. Will compute from start.')
         return(get_max_date_for_graph_table(client, dataset, graph_name))
-    
+
+        
     return(max_date)
 
 def get_min_date_for_graph_table(client, dataset, graph_name):

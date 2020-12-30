@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from google.cloud import bigquery
 
 # Gets config
-import config_constants as con
+# import config_constants as con
 import constants as const
 
 # Starts the client
