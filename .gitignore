@@ -8,6 +8,9 @@ excecution_logs/
 # Configuration
 interventions/config_constants.py
 
+# Credentials
+credentials.txt
+
 # Others
 edge_detection/
 cases_uploads/
