@@ -33,6 +33,9 @@ def main():
     
     selected = df_codes[(df_codes.max_date.isna()) | (df_codes.max_date < last_sunday)].copy()
     
+    # Includes only active depto codes
+    selected = selected[selected.code_depto.isin(utils.get_active_depto_codes(client))]    
+    
 
     print(f'   Updates for {selected.shape[0]} codes')
     

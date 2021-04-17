@@ -43,6 +43,11 @@ def main():
 
     # Filters out
     selected = df_coverage[(df_coverage.max_date.isna()) | (df_coverage.max_date + timedelta(hours = 1) < today)]
+    
+    # Includes only active depto codes
+    selected = selected[selected.code_depto.isin(utils.get_active_depto_codes(client))]
+    
+    
 
     print(f'Updating for {selected.shape[0]} codes' )
     print('')

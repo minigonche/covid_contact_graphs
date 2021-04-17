@@ -21,6 +21,7 @@ global_min_housing_sunday = pd.to_datetime('2021-03-07 00:00:00')
 
 # GLobal date fomat
 date_format = '%Y-%m-%d'
+long_date_format = '%Y-%m-%d %H:%M:%S'
 
 # Global temp dataset
 temp_data_set_id = "download_temp"
@@ -39,8 +40,8 @@ BOGOTA = "bogota"
     
 
 
-debug = False
-debug_current_date = "2020-12-23"
+debug = True
+debug_current_date = "2020-12-31"
 
 
 def get_today(only_date = False):
@@ -280,7 +281,7 @@ def get_min_support_date_for_location_attributes(client):
     sql = f"""
         
         SELECT location_id, min_date
-        FROM grafos-alcaldia-bogota.graph_attributes.graphs_min_support_dates
+        FROM grafos-alcaldia-bogota.coverage_dates.graphs_min_support_dates
     
     """
 
@@ -1049,6 +1050,38 @@ def get_transits_coverage(client):
     return(df)
 
 
+
+def get_active_depto_codes(client):
+    '''
+    Gets the depto codes that have at least one active polygon.
+    
+    Returns an array with the active depto codes
+    '''
+    
+    job_config = bigquery.QueryJobConfig()
+        
+    
+    sql = f"""
+        SELECT code_depto
+        FROM
+        (SELECT location_id, code_depto 
+        FROM grafos-alcaldia-bogota.geo.locations_geo_codes
+        ) as t1
+        JOIN
+        (SELECT location_id
+        FROM grafos-alcaldia-bogota.geo.locations_geometries
+        WHERE active OR attribute_active) as t2
+        ON t1.location_id = t2.location_id
+        GROUP BY code_depto
+        """
+    
+    query_job = client.query(sql, job_config=job_config) 
+
+    # Return the results as a pandas DataFrame
+    df = query_job.to_dataframe()
+    
+    return(df.code_depto.values)
+
 def get_coverage_of_depto_codes(client):
     '''
     Return a pandas DataFrame with the coverage of dates for each code_depto for the 
@@ -1090,6 +1123,9 @@ def get_coverage_of_depto_codes(client):
     # Return the results as a pandas DataFrame
     df = query_job.to_dataframe()
     
+    df.min_date = df.min_date.apply(lambda d: pd.to_datetime(d.strftime(long_date_format)))
+    df.max_date = df.max_date.apply(lambda d: pd.to_datetime(d.strftime(long_date_format)))
+    
     return(df)
 
 
@@ -1118,7 +1154,7 @@ def save_contacts_coverage(client, df_new):
     # Indexes
     if not df_old.index.equals(df_new.index):
 
-      df_new.to_csv(f'inconsistent_conctacts_coverage_{get_today()}.csv', index = False)
+      df_new.to_csv(f'inconsistent_contacts_coverage_{get_today()}.csv', index = False)
       raise ValueError("""Error when saving contacts coverage, the new coverage does not have the same rows.
                           DataFrame will be saved in excecution directory to be manually corrected and uploaded.""")
    
@@ -1128,49 +1164,47 @@ def save_contacts_coverage(client, df_new):
     # Null dates
     if df_new.min_date.isna().sum() > 0 or df_new.min_date.isna().sum() > 0:
       
-      df_new.to_csv(f'inconsistent_conctacts_coverage_{get_today()}.csv', index = False)
+      df_new.to_csv(f'inconsistent_contacts_coverage_{get_today()}.csv', index = False)
       raise ValueError("""Error when saving contacts coverage: Min and Max dates cannot be None.
                           DataFrame will be saved in excecution directory to be manually corrected and uploaded.""")
 
     # Max >= Min
     if (df_new.min_date > df_new.max_date).sum() > 0:
       
-      df_new.to_csv(f'inconsistent_conctacts_coverage_{get_today()}.csv', index = False)
+      df_new.to_csv(f'inconsistent_contacts_coverage_{get_today()}.csv', index = False)
       raise ValueError("""Error when saving contacts coverage: Max date must be greater or equal to Min date.
                           DataFrame will be saved in excecution directory to be manually corrected and uploaded.""")
     # old min == new min
     if (df_new[~df_old.min_date.isna()].min_date != df_old[~df_old.min_date.isna()].min_date ).sum() > 0:
       
-      df_new.to_csv(f'inconsistent_conctacts_coverage_{get_today()}.csv', index = False)
+      df_new.to_csv(f'inconsistent_contacts_coverage_{get_today()}.csv', index = False)
       raise ValueError("""Error when saving contacts coverage: Min dates should not be changed.
                           DataFrame will be saved in excecution directory to be manually corrected and uploaded.""")
 
     # old min == new min
     if (df_new[~df_old.max_date.isna()].max_date < df_old[~df_old.max_date.isna()].max_date ).sum() > 0:
       
-      df_new.to_csv(f'inconsistent_conctacts_coverage_{get_today()}.csv', index = False)
+      df_new.to_csv(f'inconsistent_contacts_coverage_{get_today()}.csv', index = False)
       raise ValueError("""Error when saving contacts coverage: Max date should only increase
                           DataFrame will be saved in excecution directory to be manually corrected and uploaded.""")
-
+    
 
     # Consistency checked
     # Saves the new coverage
 
     # resets index
     df_coverage = df_new.reset_index(drop = True)
-        
+    
     table_id = 'grafos-alcaldia-bogota.coverage_dates.contacts_coverage'
     
-    # deletes the table
-    client.delete_table(table_id, not_found_ok=True)
     
     # Since string columns use the "object" dtype, pass in a (partial) schema
     # to ensure the correct BigQuery data type.
     job_config = bigquery.LoadJobConfig(schema=[
         bigquery.SchemaField("code_depto", "STRING"),
-        bigquery.SchemaField("min_date", "DATE"),
-        bigquery.SchemaField("max_date", "DATE"),
-    ])
+        bigquery.SchemaField("min_date", "TIMESTAMP"),
+        bigquery.SchemaField("max_date", "TIMESTAMP"),
+    ],write_disposition="WRITE_TRUNCATE")
 
     job = client.load_table_from_dataframe(
         df_coverage, table_id, job_config=job_config
