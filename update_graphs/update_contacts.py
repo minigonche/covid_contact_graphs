@@ -32,7 +32,14 @@ def main():
 
     # Extracts summary
     print('Extracts Coverage Summary for all Locations ')
+
+    # Max date is inclusive
     df_coverage = utils.get_coverage_of_depto_codes(client)
+
+    # df_coverage must be updated and saved at the end of this proedure to ensure consistency
+
+    # If start date is missing, inserts global min_date
+    df_coverage.loc[df_coverage.min_date.isna(), 'min_date'] = utils.global_min_date
 
     # Filters out
     selected = df_coverage[(df_coverage.max_date.isna()) | (df_coverage.max_date + timedelta(hours = 1) < today)]
@@ -75,7 +82,15 @@ def main():
         print()
 
     print(f'Total time: {np.round((time.time() - update_start)/60, 2)} minutes')
-    
+    print(f'Saves Contacts Coverage')
+
+    # Updates coverage
+    # Max date must be inclusive
+    df_coverage.loc[selected.index, 'max_date'] = today - timedelta(hours = 1)
+    # Saves contact coverage
+    utils.save_contacts_coverage(client, df_coverage)
+
+        
     
     
 if __name__ == "__main__":

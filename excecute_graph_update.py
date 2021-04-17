@@ -34,13 +34,7 @@ print('--------------------------------------')
 print()
 print('Depto Codes')
 print('')
-update_depto_codes.main()
-
-print('--------------------------------------')
-print()
-print('Paths')
-print('')
-update_paths.main()
+#update_depto_codes.main()
 
 
 print('--------------------------------------')
@@ -53,28 +47,36 @@ print('--------------------------------------')
 print('')
 print('Transits')
 print('')
-update_transits.main()
+#update_transits.main()
 
 print('--------------------------------------')
 print('')
 print('Edgelists')
 print('')
-update_graphs.main()
+#update_graphs.main()
 
 print()
 print('Housing Locations')
 print('')
-update_housing.main()
+#update_housing.main()
 
 print()
 print('Graph Sizes')
 print('')
-update_sizes.main()
+#update_sizes.main()
+
+print('--------------------------------------')
+print()
+print('Paths')
+print('')
+#update_paths.main()
 
 print()
 print('Graph Movement')
 print('')
-update_movement.main()
+#update_movement.main()
+
+
 
 
 print('--------------------------------------')
