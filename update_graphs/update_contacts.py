@@ -47,7 +47,6 @@ def main():
     # Includes only active depto codes
     selected = selected[selected.code_depto.isin(utils.get_active_depto_codes(client))]
     
-    
 
     print(f'Updating for {selected.shape[0]} codes' )
     print('')

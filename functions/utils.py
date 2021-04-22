@@ -33,15 +33,20 @@ bogota_codes = ['CO.34','CO.33']
 
 global_accuracy = 30
 
+# Days to lag the computation of graphs and attributes
+# Unacast records do some backfilling
+global_day_shift = 3
+
 global_attribute_window = 7
 
 # CITY codes
 BOGOTA = "bogota"
     
 
-
-debug = True
+debug = False
 debug_current_date = "2020-12-31"
+
+
 
 
 def get_today(only_date = False):
@@ -50,22 +55,22 @@ def get_today(only_date = False):
     '''
     
     if only_date:
-        d = pd.to_datetime((datetime.now() - timedelta(hours = 6)).strftime('%Y-%m-%d'))
+        d = pd.to_datetime((datetime.now() - timedelta(days = global_day_shift, hours = 6)).strftime('%Y-%m-%d'))
     else:
-        d = pd.to_datetime((datetime.now() - timedelta(hours = 6)).strftime('%Y-%m-%d 00:00:00'))
+        d = pd.to_datetime((datetime.now() - timedelta(days = global_day_shift, hours = 6)).strftime('%Y-%m-%d 00:00:00'))
     
 
     if debug:
-      print()
-      print('-----------------')
-      print('-- DEBUG IS ON --')
-      print('-----------------')
-      print()
+        print()
+        print('-----------------')
+        print('-- DEBUG IS ON --')
+        print('-----------------')
+        print()
 
-    if only_date:
-        d = pd.to_datetime(debug_current_date)
-    else:
-        d = pd.to_datetime(debug_current_date + " 00:00:00")
+        if only_date:
+            d = pd.to_datetime(debug_current_date)
+        else:
+            d = pd.to_datetime(debug_current_date + " 00:00:00")
 
     return(d)
 

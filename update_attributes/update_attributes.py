@@ -44,12 +44,14 @@ recompute_list = ["colombia_bogota_study_1",
                   "colombia_bogota_study_3",
                   "colombia_bogota_study_4"]
 
+recompute_list = [] # Revsar!!!
+
 # Include here the desired node attributes
 # ------------------------------------
 all_node_attributes = []
 all_node_attributes.append(node_degree.NodeDegree())
 all_node_attributes.append(node_pagerank.NodePageRank())
-all_node_attributes.append(node_eigenvector.NodeEigenvector())
+#all_node_attributes.append(node_eigenvector.NodeEigenvector())
 all_node_attributes.append(node_distance_to_infected.NodeDistanceToInfected())
 all_node_attributes.append(node_personalized_pagerank.NodePersonalizedPageRank())
 
@@ -61,7 +63,7 @@ all_graph_attributes.append(graph_size.GraphSize())
 all_graph_attributes.append(graph_num_edges.GraphNumEdges())
 all_graph_attributes.append(graph_num_contacts.GraphNumberOfContacts())
 all_graph_attributes.append(graph_pagerank_gini.GraphPageRankGini())
-all_graph_attributes.append(graph_eigenvector_gini.GraphEigenvectorGini())
+#all_graph_attributes.append(graph_eigenvector_gini.GraphEigenvectorGini())
 all_graph_attributes.append(graph_personalized_pagerank_gini.GraphPersonalizedPageRankGini())
 #all_graph_attributes.append(graph_powerlaw_degree_test.GraphPowerLawTest())
 #all_graph_attributes.append(graph_eigenvalue_unweighted.GraphEigenValueUnweighted())
@@ -136,6 +138,17 @@ def main():
                 start_date = n_att.starting_date
             else:
                 start_date = row.max_date + timedelta(days = 1) # Next Day
+                
+            # DEBUG
+            # FOR BOGOTA
+            debug_date = pd.to_datetime("2021-03-10")
+            if start_date < debug_date: 
+                print('DEBUG ON')
+                print('------------')
+                print('FIXED DATE!!!')
+                print('------------')
+                start_date = debug_date
+            
 
             print(f'         Calculating { n_att.attribute_name} for {row.location_id} ({i} of {selected.shape[0]}), from: {start_date} to {end_date}')
 
