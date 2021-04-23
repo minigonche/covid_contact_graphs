@@ -15,9 +15,9 @@ import os
 
 
 # Global min date
-global_min_date = pd.to_datetime('2021-03-01 00:00:00')
-global_min_sunday = pd.to_datetime('2021-03-07 00:00:00')
-global_min_housing_sunday = pd.to_datetime('2021-03-07 00:00:00')
+global_min_date = pd.to_datetime('2021-01-01 00:00:00')
+global_min_sunday = pd.to_datetime('2021-01-10 00:00:00')
+global_min_housing_sunday = pd.to_datetime('2020-12-6 00:00:00')
 
 # GLobal date fomat
 date_format = '%Y-%m-%d'
@@ -854,14 +854,18 @@ def get_totals_by_hour(client, table_id):
 def append_by_time_window(client, start_timestamp, end_timestamp, code_depto, source_table_id, destination_table_id, accuracy, hours):
     '''
     Methods that appends contact results from the selected time window
-    '''
-    
-    job_config = bigquery.QueryJobConfig(destination = destination_table_id, 
-                                         write_disposition = 'WRITE_APPEND')
-        
-    sql = f"""
-    
-        WITH selected as
+
+
+    # New SQL Query
+    -- Divides by 5 minute timewindow
+    -- Includes min accuracy
+    -- Includes avg and min distance
+    -- Includes avg and min time_ 
+
+
+        -- OLD QUERY
+
+      WITH selected as
         (
           SELECT identifier, timestamp, device_lon, device_lat, province_short, device_horizontal_accuracy
           FROM {source_table_id}
@@ -903,6 +907,66 @@ def append_by_time_window(client, start_timestamp, end_timestamp, code_depto, so
               AND ST_DWITHIN(ST_GeogPoint(unacast.device_lon, unacast.device_lat), ST_GeogPoint(unacast2.device_lon, unacast2.device_lat),2)
         ) 
         GROUP BY date, hour, code_depto, id1, id2
+
+    '''
+    
+    job_config = bigquery.QueryJobConfig(destination = destination_table_id, 
+                                         write_disposition = 'WRITE_APPEND')
+        
+    sql = f"""
+    
+        WITH selected as
+        (
+          SELECT identifier, timestamp, device_lon, device_lat, province_short, device_horizontal_accuracy
+          FROM {source_table_id}
+          WHERE province_short = "{code_depto}"
+          AND device_horizontal_accuracy <= {accuracy}
+          AND timestamp >= TIMESTAMP("{start_timestamp}") 
+          AND timestamp < TIMESTAMP("{end_timestamp}")
+        )
+
+        SELECT 
+            id1, 
+            id2, 
+            date,
+            hour,
+            minute,
+            code_depto,
+            AVG(lat) as lat,
+            AVG(lon) as lon,
+            AVG(id1_device_accuracy) as avg_id1_device_accuracy,
+            AVG(id2_device_accuracy) as avg_id2_device_accuracy,
+            MIN(id1_device_accuracy) as min_id1_device_accuracy,
+            MIN(id2_device_accuracy) as min_id2_device_accuracy,
+            AVG(distance) as avg_distance,
+            MIN(distance) as min_distance,
+            AVG(time_difference) as avg_time_difference,
+            MIN(time_difference) as min_time_difference,
+            COUNT(*) as contacts
+        FROM
+        (        
+            SELECT
+              unacast.identifier AS id1,
+              unacast2.identifier AS id2,
+              DATE(unacast.timestamp) AS date,
+              EXTRACT(HOUR FROM unacast.timestamp) AS hour,
+              CAST(5*FLOOR(EXTRACT(MINUTE FROM unacast.timestamp)/5) AS INT64) AS minute,
+              unacast.province_short AS code_depto,
+              unacast.device_lat as lat,
+              unacast.device_lon as lon,
+              unacast.device_horizontal_accuracy as id1_device_accuracy,
+              unacast2.device_horizontal_accuracy as id2_device_accuracy,
+              ST_DISTANCE(ST_GeogPoint(unacast.device_lon, unacast.device_lat), ST_GeogPoint(unacast2.device_lon, unacast2.device_lat)) as distance,
+              ABS(CAST(TIMESTAMP_DIFF(unacast.timestamp, unacast2.timestamp, Minute) AS int64)) as time_difference
+            FROM
+               selected AS unacast,
+               selected AS unacast2
+            WHERE              
+                  unacast.identifier < unacast2.identifier
+              AND ABS(CAST(TIMESTAMP_DIFF(unacast.timestamp, unacast2.timestamp, Minute) AS int64)) <= 2
+              AND ST_DISTANCE(ST_GeogPoint(unacast.device_lon, unacast.device_lat), ST_GeogPoint(unacast2.device_lon, unacast2.device_lat)) < 5
+        ) 
+        GROUP BY date, hour, minute, code_depto, id1, id2
     """
     
 
@@ -1379,7 +1443,7 @@ def update_contacts_for_depto_code(client, code_depto, start_time, end_time,
 
     # Name of sources
     source_table_id = 'grafos-alcaldia-bogota.{}.{}'.format(temp_data_set_id, temp_table_name)
-    destination_table_id = 'grafos-alcaldia-bogota.contactos_hour.all_locations'
+    destination_table_id = 'grafos-alcaldia-bogota.contacts_minute.all_locations'
 
 
 
@@ -1535,7 +1599,7 @@ def add_edglists_to_graph(client, dataset_id, graph_name, date):
         ), 
         contacts as (
           SELECT con.* 
-          FROM grafos-alcaldia-bogota.contactos_hour.all_locations as con
+          FROM grafos-alcaldia-bogota.contacts_minute.all_locations as con
           JOIN (SELECT code_depto FROM grafos-alcaldia-bogota.geo.locations_geo_codes WHERE location_id = "{graph_name}") codes
           ON con.code_depto = codes.code_depto
           WHERE con.date = "{date}"
