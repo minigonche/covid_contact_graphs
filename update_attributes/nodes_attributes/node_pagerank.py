@@ -16,7 +16,7 @@ property_values['attribute_name'] = 'pagerank_centrality'
 
 # Max Support
 property_values['max_num_nodes'] = np.inf
-property_values['max_num_edges'] = 50000000 # 50 Millions
+property_values['max_num_edges'] = 25000000 # 25 Millions
 
 
 class NodePageRank(GenericNodeAttribute):

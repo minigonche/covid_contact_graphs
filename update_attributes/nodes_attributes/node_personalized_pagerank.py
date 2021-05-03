@@ -20,7 +20,7 @@ property_values['priority'] = 2
 
 # Max Support
 property_values['max_num_nodes'] = np.inf
-property_values['max_num_edges'] = 20000000 # 20 Millions
+property_values['max_num_edges'] = 25000000 # 25 Millions
 
 
 # Other properties

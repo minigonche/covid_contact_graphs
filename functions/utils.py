@@ -17,7 +17,7 @@ import os
 # Global min date
 global_min_date = pd.to_datetime('2021-01-01 00:00:00')
 global_min_sunday = pd.to_datetime('2021-01-10 00:00:00')
-global_min_housing_sunday = pd.to_datetime('2020-12-6 00:00:00')
+global_min_housing_sunday = pd.to_datetime('2020-12-06 00:00:00')
 
 # GLobal date fomat
 date_format = '%Y-%m-%d'
@@ -35,16 +35,17 @@ global_accuracy = 30
 
 # Days to lag the computation of graphs and attributes
 # Unacast records do some backfilling
-global_day_shift = 3
+global_day_shift = 4
 
 global_attribute_window = 7
+global_attribute_window_shift_days = 3
 
 # CITY codes
 BOGOTA = "bogota"
     
 
 debug = False
-debug_current_date = "2020-12-31"
+debug_current_date = "2021-01-03"
 
 
 
@@ -1191,9 +1192,12 @@ def get_coverage_of_depto_codes(client):
 
     # Return the results as a pandas DataFrame
     df = query_job.to_dataframe()
+        
+    df.min_date = pd.to_datetime(df.min_date, errors='coerce')
+    df.max_date = pd.to_datetime(df.max_date, errors='coerce')    
     
-    df.min_date = df.min_date.apply(lambda d: pd.to_datetime(d.strftime(long_date_format)))
-    df.max_date = df.max_date.apply(lambda d: pd.to_datetime(d.strftime(long_date_format)))
+    df.min_date = pd.to_datetime( df.min_date.apply(lambda d: d.strftime(long_date_format)), errors='coerce')
+    df.max_date = pd.to_datetime( df.max_date.apply(lambda d: d.strftime(long_date_format)), errors='coerce')
     
     return(df)
 
@@ -1645,11 +1649,18 @@ def create_edgelist_table(client, dataset, graph_id):
                 bigquery.SchemaField("id2", "STRING"),
                 bigquery.SchemaField("date", "DATE"),
                 bigquery.SchemaField("hour", "INTEGER"),
+                bigquery.SchemaField("minute", "INTEGER"),
                 bigquery.SchemaField("code_depto", "STRING"),
                 bigquery.SchemaField("lat", "FLOAT"),
                 bigquery.SchemaField("lon", "FLOAT"),            
-                bigquery.SchemaField("id1_device_accuracy", "FLOAT"),
-                bigquery.SchemaField("id2_device_accuracy", "FLOAT"),
+                bigquery.SchemaField("avg_id1_device_accuracy", "FLOAT"),
+                bigquery.SchemaField("avg_id2_device_accuracy", "FLOAT"),
+                bigquery.SchemaField("min_id1_device_accuracy", "INTEGER"),
+                bigquery.SchemaField("min_id2_device_accuracy", "INTEGER"),
+                bigquery.SchemaField("avg_distance", "FLOAT"),
+                bigquery.SchemaField("min_distance", "FLOAT"),
+                bigquery.SchemaField("avg_time_difference", "FLOAT"),
+                bigquery.SchemaField("min_time_difference", "INTEGER"),
                 bigquery.SchemaField("contacts", "INTEGER")
     ]
 

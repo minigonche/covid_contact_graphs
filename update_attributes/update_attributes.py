@@ -38,18 +38,11 @@ import graphs_attributes.graph_num_cases_accumulated as graph_num_cases_accumula
 import graphs_attributes.graph_avg_distance_to_infected as graph_avg_distance_to_infected
 
 
-# Recompute list. Must think about integrating to database as table
-recompute_list = ["colombia_bogota_study_1",
-                  "colombia_bogota_study_2", 
-                  "colombia_bogota_study_3",
-                  "colombia_bogota_study_4"]
-
-recompute_list = [] # Revsar!!!
 
 # Include here the desired node attributes
 # ------------------------------------
 all_node_attributes = []
-all_node_attributes.append(node_degree.NodeDegree())
+#all_node_attributes.append(node_degree.NodeDegree())
 all_node_attributes.append(node_pagerank.NodePageRank())
 #all_node_attributes.append(node_eigenvector.NodeEigenvector())
 all_node_attributes.append(node_distance_to_infected.NodeDistanceToInfected())
@@ -87,7 +80,8 @@ def main():
     
 
     # Extracts the current date
-    end_date = utils.get_today(only_date = True) - timedelta(days = 1)
+    end_date = utils.get_today(only_date = True)
+    end_date = end_date - timedelta(days = 1) # Graphs are computed until the end of previuos date
     
     # DEBUG
     #end_date = pd.to_datetime('2020-11-08')
@@ -99,10 +93,7 @@ def main():
     # Nodes
     df_att_all = utils.get_max_dates_for_node_attributes(client)
     
-    # Check need to recompute
-    for location in recompute_list:
-        df_att_all.loc[location, 'max_date'] = None
-
+    
     print(f'Computing {len(all_node_attributes)} Node Attributes')
     # Excecutes all the Node attributes
     
@@ -122,7 +113,7 @@ def main():
         df_current = df_current[df_current.location_id.apply(lambda l: n_att.location_id_supported(l))]
 
         # Filters out
-        selected = df_current[(df_current.max_date.isna()) | (df_current.max_date < end_date)].copy()
+        selected = df_current[(df_current.max_date.isna()) | (df_current.max_date < (end_date - timedelta(days = utils.global_attribute_window_shift_days)))].copy()
         
         # Transforms the date into datetime (bug?)
         selected.max_date = selected.max_date.apply(pd.to_datetime)
@@ -137,18 +128,8 @@ def main():
             if pd.isna(row.max_date):
                 start_date = n_att.starting_date
             else:
-                start_date = row.max_date + timedelta(days = 1) # Next Day
-                
-            # DEBUG
-            # FOR BOGOTA
-            debug_date = pd.to_datetime("2021-03-10")
-            if start_date < debug_date: 
-                print('DEBUG ON')
-                print('------------')
-                print('FIXED DATE!!!')
-                print('------------')
-                start_date = debug_date
-            
+                start_date = row.max_date + timedelta(days = utils.global_attribute_window_shift_days) # Next Day Shifted
+                            
 
             print(f'         Calculating { n_att.attribute_name} for {row.location_id} ({i} of {selected.shape[0]}), from: {start_date} to {end_date}')
 
@@ -161,7 +142,7 @@ def main():
                 else:
                     print(f'            {current_date}: Skipped by implementation.')
 
-                current_date = current_date + timedelta(days = 1)
+                current_date = current_date + timedelta(days = utils.global_attribute_window_shift_days)
             
             print(f'   Elapsed Time: {np.round((time.time() - start_time)/3600,3)} hours')
 
@@ -175,10 +156,6 @@ def main():
     # Graphs
     df_att_all = utils.get_max_dates_for_graph_attributes(client)
     
-    # Check need to recompute
-    for location in recompute_list:
-        df_att_all.loc[location, 'max_date'] = None
-
     print(f'Computing {len(all_graph_attributes)} Graphs Attributes')
     # Excecutes all the graph attributes
     
@@ -196,7 +173,7 @@ def main():
         df_current = df_current[df_current.location_id.apply(lambda l: g_att.location_id_supported(l))]
         
         # Filters out
-        selected = df_current[(df_current.max_date.isna()) | (df_current.max_date < end_date)]
+        selected = df_current[(df_current.max_date.isna()) | (df_current.max_date < (end_date - timedelta(days = utils.global_attribute_window_shift_days)))]
 
         print(f'      Found {selected.shape[0]}')
         i = 0
@@ -207,7 +184,7 @@ def main():
             if pd.isna(row.max_date):
                 start_date = g_att.starting_date
             else:
-                start_date = pd.to_datetime(row.max_date) + timedelta(days = 1) # Next Day
+                start_date = pd.to_datetime(row.max_date) + timedelta(days = utils.global_attribute_window_shift_days) # Next Day
 
             print(f'         Calculating { g_att.attribute_name} for {row.location_id} ({i} of {selected.shape[0]}), from: {start_date.date()} to {end_date.date()}')
 
@@ -220,7 +197,7 @@ def main():
                 else:
                     print(f'            {current_date.date()}: Skipped by implementation.')
 
-                current_date = current_date + timedelta(days = 1)
+                current_date = current_date + timedelta(days = utils.global_attribute_window_shift_days)
             
             print(f'   Elapsed Time: {np.round((time.time() - start_time)/3600,3)} hours')
             
