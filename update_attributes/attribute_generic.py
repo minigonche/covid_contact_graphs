@@ -24,7 +24,7 @@ default_property_values['attribute_name'] = None
 # Optional
 # ---------
 # Start Date of the attribute
-default_property_values['starting_date'] = utils.global_min_sunday # sixth week of the year
+default_property_values['starting_date'] = utils.global_min_attribute_date # GLobally assinged
 # Max number of edges allow to proceed with calculation
 default_property_values['max_num_nodes'] = np.inf
 # Max number of nodes allow to proceed with calculation

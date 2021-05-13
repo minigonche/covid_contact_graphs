@@ -14,10 +14,13 @@ import os
 
 
 
+
 # Global min date
 global_min_date = pd.to_datetime('2021-01-01 00:00:00')
 global_min_sunday = pd.to_datetime('2021-01-10 00:00:00')
-global_min_housing_sunday = pd.to_datetime('2020-12-06 00:00:00')
+global_min_housing_sunday = pd.to_datetime('2020-01-12 00:00:00')
+global_min_seniority_search = pd.to_datetime("2020-11-01 00:00:00")
+global_min_attribute_date = pd.to_datetime('2021-01-10 00:00:00')
 
 # GLobal date fomat
 date_format = '%Y-%m-%d'
@@ -45,7 +48,7 @@ BOGOTA = "bogota"
     
 
 debug = False
-debug_current_date = "2021-01-03"
+debug_current_date = "2021-01-01"
 
 
 
@@ -305,6 +308,10 @@ def update_bogota_sample(client, todays_date):
     
     df_temp = run_simple_query(client, sql)
     max_date = df_temp.max_date.values[0]
+
+    if max_date >= todays_date:
+        print('      Bogota up to date')
+        return(True)
     
     print(f'      Updating Bogota until: {todays_date}')
     
@@ -1288,6 +1295,62 @@ def save_contacts_coverage(client, df_new):
 
 
 
+def get_depto_code_seniority_coverage(client):
+    '''
+    Method that extracts the code depto coverage for identifier seniority.
+    Extracts all depto_codes in use (even non active ones)
+    '''
+
+
+    query = """
+
+        SELECT codes.code_depto as code_depto, sen.max_date as max_date 
+        FROM
+        (SELECT code_depto
+        FROM `grafos-alcaldia-bogota.geo.locations_geo_codes`
+        GROUP BY code_depto) AS codes
+        LEFT JOIN 
+        (SELECT code_depto, MAX(date) as max_date
+        FROM `grafos-alcaldia-bogota.seniority.identifier_seniority`
+        GROUP BY code_depto) AS sen 
+        ON sen.code_depto = codes.code_depto
+
+
+    """
+
+    return(run_simple_query(client, query))
+
+
+def update_seniority(client, code_depto, start_time, end_time):
+    """
+    Updates seniority for the given parameters
+    NOTE: Start date paremeter is inclive and end date parameter is not
+    """
+
+
+    sql = f"""
+        SELECT province_short AS code_depto, identifier, date
+        FROM `servinf-unacast-prod.unacasttest.unacast_positions_partitioned`
+        WHERE province_short = "{code_depto}" 
+            AND date >= "{start_time.strftime(date_format)}"
+            AND date < "{end_time.strftime(date_format)}"
+        GROUP BY province_short, identifier, date
+    
+    """
+    
+    job_config = bigquery.QueryJobConfig(destination = "grafos-alcaldia-bogota.seniority.identifier_seniority", 
+                                         write_disposition = 'WRITE_APPEND')
+    
+    
+    query_job = client.query(sql, job_config=job_config)  
+    query_job.result()
+    
+    return(query_job)
+
+
+
+
+
 def get_path_coverage_of_depto_codes(client):
     '''
     Return a pandas DataFrame with the coverage of dates for each code_depto for the 
@@ -1443,7 +1506,6 @@ def update_contacts_for_depto_code(client, code_depto, start_time, end_time,
     
     # Creates the temporal table
     res = create_temp_table(client, temp_table_name, code_depto, start_date, end_date)
-    print()
 
     # Name of sources
     source_table_id = 'grafos-alcaldia-bogota.{}.{}'.format(temp_data_set_id, temp_table_name)
@@ -1479,11 +1541,9 @@ def update_contacts_for_depto_code(client, code_depto, start_time, end_time,
             else:
                 accuracy = max(0,accuracy - accuracy_jump)
                         
-            print(ident + f'   Max time exceeded on {start_timestamp} to {end_timestamp} . Adjusting. Jump: {jump}, accuracy: {accuracy}')
-
             if accuracy == 0:
                 if verbose:
-                    print(f'   Skipping date: {start_timestamp}')
+                    print(f'      Limit reached. Skipping date: {start_timestamp}')
 
                 row = f'{start_timestamp},{end_timestamp},{jump},{accuracy},{np.round(elapsed,2)},{np.round( (time.time() - process_start)/60,1)},{accuracy == 0}'
                 with open(file_name, 'a') as f:
@@ -1492,7 +1552,8 @@ def update_contacts_for_depto_code(client, code_depto, start_time, end_time,
                 start_timestamp = end_timestamp
                 accuracy += accuracy_jump
 
-
+            else:
+                print(ident + f'      Max time exceeded on {start_timestamp} to {end_timestamp} . Adjusting. Jump: {jump}, accuracy: {accuracy} and will retry.')
 
             time.sleep(5)
             continue

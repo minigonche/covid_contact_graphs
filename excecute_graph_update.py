@@ -21,6 +21,7 @@ import update_housing
 import update_sizes
 import update_paths
 import update_movement
+import update_seniority
 
 print('')
 print('')
@@ -43,6 +44,15 @@ print('Contacts')
 print('')
 update_contacts.main()
 
+
+print('--------------------------------------')
+print()
+print('Seniority')
+print('')
+#update_seniority.main() # Falta por Probar
+
+
+
 print('--------------------------------------')
 print('')
 print('Transits')
@@ -53,12 +63,13 @@ print('--------------------------------------')
 print('')
 print('Edgelists')
 print('')
-update_graphs.main()
+update_graphs.main() 
 
 print()
 print('Housing Locations')
 print('')
-update_housing.main()
+update_housing.main() 
+
 
 print()
 print('Graph Sizes')
@@ -67,10 +78,11 @@ update_sizes.main()
 
 print('--------------------------------------')
 print()
-print('Paths')
+print('Paths') 
 print('')
 update_paths.main()
 
+# Bogota tiene ciertos valores computados. Faltan las localidades
 print()
 print('Graph Movement')
 print('')
@@ -83,7 +95,3 @@ print('--------------------------------------')
 print('')
 print('All Done')
 print('<-OK->')
-
-#with open(os.path.join(current_path, 'excecution_logs/excecutions_timestamps.log'),'a') as f:
-#    f.write('Updated on: {}\n'.format(datetime.now()))
-

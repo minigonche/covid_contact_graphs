@@ -17,8 +17,6 @@ def main():
     
     today = utils.get_today()
 
-    #DEBUG
-    #today = pd.to_datetime("2020-07-10")
     
     print('   Extracts Coverage')
     df_locations = utils.get_edgelists_coverage(client)
@@ -26,6 +24,7 @@ def main():
     # Filters out
     selected = df_locations[(df_locations.end_date.isna()) | (df_locations.end_date + timedelta(days = 1) < today)] # Substracts one day so that it does not compute partial days
     
+        
     # Min Support Date
     df_min_support_date = utils.get_min_support_date_for_location_attributes(client)
     df_min_support_date.index = df_min_support_date.location_id    
@@ -69,7 +68,7 @@ def main():
             
         if not pd.isna(row.end_date):
             curent_date = (pd.to_datetime(row.end_date) + timedelta(days = 1))
-
+        
         final_date = today.date()
 
         while curent_date < final_date: # Does not include last day
@@ -91,6 +90,8 @@ def main():
     for ind, row in df_locations.iterrows():        
         #updates the value
         df_locations.loc[ind, 'end_date'] = df_locations.loc[ind, 'end_date'] - timedelta(days = 10) # Sets back 10 days, to avoid this script to run with transit compution failing
+
+
 
     print('Saves coverage')
     utils.refresh_graphs_coverage(client, df_locations)

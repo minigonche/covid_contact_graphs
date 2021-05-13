@@ -24,7 +24,7 @@ def main():
     jump = 12 # Hours
     treshold = 30 # Time Treshold Seconds
     accuracy = 30 # Start accuracy                    
-    max_jump = 12 # Max jump (hours)
+    max_jump = 2 # Max jump (hours)
     max_accuracy = 30 # Max Accuracy
     accuracy_jump = 2 # The accuracy jump
     verbose = True
@@ -44,6 +44,7 @@ def main():
     # Filters out
     selected = df_coverage[(df_coverage.max_date.isna()) | (df_coverage.max_date + timedelta(hours = 1) < today)]
     
+        
     # Includes only active depto codes
     selected = selected[selected.code_depto.isin(utils.get_active_depto_codes(client))]
     
@@ -61,6 +62,7 @@ def main():
         start_time = utils.global_min_date
         if not pd.isna(row.max_date):
             start_time = pd.to_datetime(row.max_date) + timedelta(hours = 1)
+            
 
         # Today
         end_time = pd.to_datetime(today.strftime('%Y-%m-%d 00:00:00'))
@@ -87,7 +89,8 @@ def main():
 
     print(f'Total time: {np.round((time.time() - update_start)/60, 2)} minutes')
     print(f'Saves Contacts Coverage')
-
+    
+        
     # Updates coverage
     # Max date must be inclusive
     df_coverage.loc[selected.index, 'max_date'] = today - timedelta(hours = 1)

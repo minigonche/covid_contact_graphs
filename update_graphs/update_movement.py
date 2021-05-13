@@ -30,7 +30,7 @@ def main():
 
     end_date = today
     
-    
+
     # Filters out
     df_locations = df_locations[(df_locations.max_date.isna()) | (df_locations.max_date + timedelta(days = 1) < end_date)]
 
@@ -53,6 +53,7 @@ def main():
             
         if not pd.isna(row.max_date):
             start_date = row.max_date + timedelta(days = 1) # Next Day
+   
 
         print(f'      Calculating for {row.location_id} ({i} of {df_locations.shape[0]}), from: {start_date} to {end_date}')
 
