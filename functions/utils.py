@@ -1324,7 +1324,7 @@ def get_depto_code_seniority_coverage(client):
 def update_seniority(client, code_depto, start_time, end_time):
     """
     Updates seniority for the given parameters
-    NOTE: Start date paremeter is inclive and end date parameter is not
+    NOTE: Start date paremeter is inclusive and end date parameter is not
     """
 
 
@@ -1348,6 +1348,32 @@ def update_seniority(client, code_depto, start_time, end_time):
     return(query_job)
 
 
+def update_seniority_summary(client):
+    """
+    Updates the summary table that cotains seniority
+    """
+
+
+    sql = f"""
+        SELECT identifier, COUNT(*) as total_days
+        FROM
+        (
+            SELECT identifier, date
+            FROM `grafos-alcaldia-bogota.seniority.identifier_seniority`
+            GROUP BY identifier, date
+        )
+        GROUP BY identifier
+    
+    """
+    
+    job_config = bigquery.QueryJobConfig(destination = "grafos-alcaldia-bogota.seniority.identifier_seniority_summary", 
+                                         write_disposition = 'WRITE_TRUNCATE')
+    
+    
+    query_job = client.query(sql, job_config=job_config)  
+    query_job.result()
+    
+    return(query_job)
 
 
 

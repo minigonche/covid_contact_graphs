@@ -29,10 +29,11 @@ def main():
     # Max date is inclusive
     df_coverage = utils.get_depto_code_seniority_coverage(client)
 
+
     # Filters out
-    selected = df_coverage[(df_coverage.max_date.isna()) | (df_coverage.max_date + timedelta(days = 1) < end_date)]
+    selected = df_coverage[(df_coverage.max_date.isna()) | (df_coverage.max_date + timedelta(days = 1) < today)]
     
-        
+           
     # Includes only active depto codes
     selected = selected[selected.code_depto.isin(utils.get_active_depto_codes(client))]
     
@@ -64,6 +65,10 @@ def main():
         print(f'Global Time Ellapsed: {np.round((time.time() - update_start)/60, 2)} minutes')
         print()
 
+
+    print('Updates Seniority Summary Table')
+    utils.update_seniority_summary(client)
+    
     print(f'Total time: {np.round((time.time() - update_start)/60, 2)} minutes')
 
             
