@@ -2,7 +2,7 @@
 import pathlib
 import os, sys
 from datetime import datetime
-from googleapiclient import discovery
+
 
 current_path = pathlib.Path(__file__).parent.absolute()
 
@@ -13,6 +13,7 @@ sys.path.append(os.path.join(current_path,'functions/'))
 
 # Imports the scripts
 from config import *
+import check_integrity
 import update_transits
 import update_contacts
 import update_graphs
@@ -22,6 +23,7 @@ import update_sizes
 import update_paths
 import update_movement
 import update_seniority
+
 
 print('')
 print('')
@@ -33,23 +35,29 @@ print('Time: {}'.format(datetime.now()))
 print('Started Update Process')
 print('--------------------------------------')
 print()
-print('Depto Codes')
+print('Integrity')
 print('')
-#update_depto_codes.main()
-
+check_integrity.main()
 
 print('--------------------------------------')
 print()
-print('Contacts')
+print('Depto Codes')
 print('')
-#update_contacts.main()
+update_depto_codes.main()
 
 
 print('--------------------------------------')
 print()
 print('Seniority')
 print('')
-update_seniority.main() # Falta por Probar
+update_seniority.main() 
+
+
+print('--------------------------------------')
+print()
+print('Contacts')
+print('')
+update_contacts.main()
 
 
 
@@ -57,37 +65,41 @@ print('--------------------------------------')
 print('')
 print('Transits')
 print('')
-#update_transits.main()
+update_transits.main()
+
+
 
 print('--------------------------------------')
 print('')
 print('Edgelists')
 print('')
-#update_graphs.main() 
+update_graphs.main() 
+
 
 print()
 print('Housing Locations')
 print('')
-#update_housing.main() 
+update_housing.main() 
+
 
 
 print()
 print('Graph Sizes')
 print('')
-#update_sizes.main()
+update_sizes.main()
 
 print('--------------------------------------')
 print()
 print('Paths') 
 print('')
-#update_paths.main()
+update_paths.main()
+
 
 # Bogota tiene ciertos valores computados. Faltan las localidades
 print()
 print('Graph Movement')
 print('')
-#update_movement.main()
-
+update_movement.main()
 
 
 

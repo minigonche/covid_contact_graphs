@@ -56,7 +56,7 @@ def main():
         
 
         print(f'      Calculating for {row.location_id} ({i} of {df_locations.shape[0]}), from: {start_date} to {end_date}')
-
+        
         current_date = start_date
         while current_date <= end_date:
             
@@ -72,7 +72,7 @@ def main():
                     FROM grafos-alcaldia-bogota.transits.hourly_transits
                     WHERE location_id = "{location_id}"
                           AND date <= "{date_string}"
-                          AND date >= DATE_SUB("{date_string}", INTERVAL 6 DAY) 
+                          AND date >= DATE_SUB("{date_string}", INTERVAL {utils.global_attribute_window - 1} DAY) 
                     GROUP BY identifier )) as num_nodes,
                     (SELECT COUNT(*) as num_edges
                       FROM
@@ -80,7 +80,7 @@ def main():
                           SELECT id1, id2
                           FROM grafos-alcaldia-bogota.{dataset_id}.{location_id}
                           WHERE date <= "{date_string}"
-                                AND date >= DATE_SUB("{date_string}", INTERVAL 6 DAY) 
+                                AND date >= DATE_SUB("{date_string}", INTERVAL {utils.global_attribute_window - 1} DAY) 
                           GROUP BY id1, id2
                       )) as num_edges
             

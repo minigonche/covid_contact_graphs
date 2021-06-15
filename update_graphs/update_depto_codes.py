@@ -16,7 +16,7 @@ def main():
     
     # Gets the coverage
     client = bigquery.Client(location="US")
-    
+
     # Gets the current locations
     df_locations =  utils.get_current_locations(client)
     

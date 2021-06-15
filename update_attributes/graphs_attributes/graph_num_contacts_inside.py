@@ -1,5 +1,4 @@
-# Graph Total number of contacts attribute
-
+# Graph Number of contacts inside the designated polygon attribute
 
 from graph_attribute_generic import GenericGraphAttribute
 import pandas as pd
@@ -11,14 +10,13 @@ import numpy as np
 property_values = {}
 
 # Attribute name
-property_values['attribute_name'] = 'number_of_contacts'
+property_values['attribute_name'] = 'number_of_contacts_inside'
 
 
 
-
-class GraphNumberOfContacts(GenericGraphAttribute):
+class GraphNumberOfContactsInside(GenericGraphAttribute):
     '''
-    Script that computes the number of unique contacts (by hour) for the total week
+    Script that computes the number of unique contacts (by hour) for the total week that occur inside the polygon
     '''
 
     def __init__(self):
@@ -71,13 +69,18 @@ class GraphNumberOfContacts(GenericGraphAttribute):
         datset_id = self.df_locations.loc[location_id, 'dataset']
         
         query = f"""
-            SELECT COUNT(*) as num_contacts
-            FROM grafos-alcaldia-bogota.{datset_id}.{location_id}
-            WHERE date >= "{start_date_string}" AND date <= "{end_date_string}"
+
+            SELECT COUNT(*) as num_contacts_inside
+            FROM grafos-alcaldia-bogota.{datset_id}.{location_id} as edges
+            WHERE ST_DWithin(ST_GeogPoint(edges.lon, edges.lat),
+                            (SELECT geometry FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"), 
+                            (SELECT precision FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"))
+                    AND date >= "{start_date_string}" AND date <= "{end_date_string}"         
+
         """
         
         df = utils.run_simple_query(self.client, query)
-        df.rename(columns = {'num_contacts':'value'}, inplace = True)
+        df.rename(columns = {'num_contacts_inside':'value'}, inplace = True)
         df['attribute_name'] = self.attribute_name
 
         return(df)

@@ -1,5 +1,6 @@
 # Update Attributes
 # Script that computes all the attributes
+from functions.utils import graph_attribute_exists
 from google.cloud import bigquery
 from google.api_core.exceptions import BadRequest
 import pandas as pd
@@ -36,7 +37,7 @@ import graphs_attributes.graph_eigenvalue_unweighted as graph_eigenvalue_unweigh
 import graphs_attributes.graph_transitivity as graph_transitivity
 import graphs_attributes.graph_num_cases_accumulated as graph_num_cases_accumulated
 import graphs_attributes.graph_avg_distance_to_infected as graph_avg_distance_to_infected
-
+import graphs_attributes.graph_num_contacts_inside as graph_num_contacts_inside
 
 
 # Include here the desired node attributes
@@ -55,6 +56,7 @@ all_graph_attributes.append(graph_avg_distance_to_infected.GraphAvgDistanceToInf
 all_graph_attributes.append(graph_size.GraphSize())
 all_graph_attributes.append(graph_num_edges.GraphNumEdges())
 all_graph_attributes.append(graph_num_contacts.GraphNumberOfContacts())
+all_graph_attributes.append(graph_num_contacts_inside.GraphNumberOfContactsInside())
 all_graph_attributes.append(graph_pagerank_gini.GraphPageRankGini())
 #all_graph_attributes.append(graph_eigenvector_gini.GraphEigenvectorGini())
 all_graph_attributes.append(graph_personalized_pagerank_gini.GraphPersonalizedPageRankGini())
@@ -98,7 +100,7 @@ def main():
     # Excecutes all the Node attributes
     
     start_time = time.time()
-    
+
     j = 0
     for n_att in all_node_attributes:
         
@@ -118,6 +120,7 @@ def main():
         # Transforms the date into datetime (bug?)
         selected.max_date = selected.max_date.apply(pd.to_datetime)
 
+
         print(f'      Found {selected.shape[0]}')
         
         i = 0
@@ -129,9 +132,10 @@ def main():
                 start_date = n_att.starting_date
             else:
                 start_date = row.max_date + timedelta(days = utils.global_attribute_window_shift_days) # Next Day Shifted
-                            
+
 
             print(f'         Calculating { n_att.attribute_name} for {row.location_id} ({i} of {selected.shape[0]}), from: {start_date} to {end_date}')
+
 
             current_date = start_date
             while current_date <= end_date:
@@ -141,6 +145,7 @@ def main():
                     print(f'            {current_date}: OK.')
                 else:
                     print(f'            {current_date}: Skipped by implementation.')
+
 
                 current_date = current_date + timedelta(days = utils.global_attribute_window_shift_days)
             
@@ -175,6 +180,7 @@ def main():
         # Filters out
         selected = df_current[(df_current.max_date.isna()) | (df_current.max_date < (end_date - timedelta(days = utils.global_attribute_window_shift_days)))]
 
+
         print(f'      Found {selected.shape[0]}')
         i = 0
         for ind, row in selected.iterrows():
@@ -185,6 +191,7 @@ def main():
                 start_date = g_att.starting_date
             else:
                 start_date = pd.to_datetime(row.max_date) + timedelta(days = utils.global_attribute_window_shift_days) # Next Day
+
 
             print(f'         Calculating { g_att.attribute_name} for {row.location_id} ({i} of {selected.shape[0]}), from: {start_date.date()} to {end_date.date()}')
 

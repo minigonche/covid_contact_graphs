@@ -68,6 +68,11 @@ def main():
 
     print('Updates Seniority Summary Table')
     utils.update_seniority_summary(client)
+    print('   Done')
+
+    print('Updates Valid Identifiers')
+    utils.update_valid_identifiers(client)
+    print("   Done")
     
     print(f'Total time: {np.round((time.time() - update_start)/60, 2)} minutes')
 

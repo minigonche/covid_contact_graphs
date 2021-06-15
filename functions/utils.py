@@ -13,6 +13,8 @@ import os
 
 
 
+# Seniority constants
+min_total_days_active = 30
 
 
 # Global min date
@@ -21,6 +23,8 @@ global_min_sunday = pd.to_datetime('2021-01-10 00:00:00')
 global_min_housing_sunday = pd.to_datetime('2020-01-12 00:00:00')
 global_min_seniority_search = pd.to_datetime("2020-11-01 00:00:00")
 global_min_attribute_date = pd.to_datetime('2021-01-10 00:00:00')
+
+
 
 # GLobal date fomat
 date_format = '%Y-%m-%d'
@@ -48,7 +52,7 @@ BOGOTA = "bogota"
     
 
 debug = False
-debug_current_date = "2021-01-01"
+debug_current_date = "2021-01-10"
 
 
 
@@ -129,8 +133,19 @@ def run_simple_query(client, query, allow_large_results=False):
     df = query_job.to_dataframe()
     
     return(df)
-    
 
+
+def run_simple_query_no_result(client, query):
+    '''
+    Method that runs a simple query
+    '''
+    
+    job_config = bigquery.QueryJobConfig()
+    query_job = client.query(query, job_config=job_config) 
+
+    # Runs query
+    query_job.result()
+        
     
 def get_current_locations(client, only_active = True):
     '''
@@ -191,6 +206,27 @@ def get_current_locations_for_attributes(client):
       """
 
     return( run_simple_query(client, sql))
+
+
+def get_duplicate_locations(client):
+    '''
+    Method that returns locations that are duplicate in the geometries table
+    '''
+
+    sql = f"""
+            SELECT location_id, tot
+            FROM 
+            (
+                SELECT location_id, count(*) tot
+                FROM `grafos-alcaldia-bogota.geo.locations_geometries`
+                GROUP BY location_id
+                ORDER BY tot desc
+
+            ) as t 
+            WHERE t.tot > 1
+      """
+
+    return( run_simple_query(client, sql))    
 
 
 # Is in different locations ids
@@ -299,6 +335,7 @@ def get_min_support_date_for_location_attributes(client):
 def update_bogota_sample(client, todays_date):
     '''
     Method that updates the bogota (to save money with so many UPZ and Localities)
+    Only includes valid identifiers according to the seniority scheme
     '''
     
     table_id = "grafos-alcaldia-bogota.unacast_samples.unacast_bogota"
@@ -309,15 +346,17 @@ def update_bogota_sample(client, todays_date):
     df_temp = run_simple_query(client, sql)
     max_date = df_temp.max_date.values[0]
 
-    if max_date >= todays_date:
+    if max_date >= pd.to_datetime(todays_date):
         print('      Bogota up to date')
         return(True)
     
     print(f'      Updating Bogota until: {todays_date}')
     
     sql = f"""
-        SELECT identifier, timestamp, date, device_lat, device_lon, province_short
-        FROM servinf-unacast-prod.unacasttest.unacast_positions_partitioned
+        SELECT un.identifier, timestamp, date, device_lat, device_lon, province_short
+        FROM servinf-unacast-prod.unacasttest.unacast_positions_partitioned AS un
+        JOIN `grafos-alcaldia-bogota.seniority.valid_identifiers` AS iden
+        ON un.identifier = iden.identifier
         WHERE (province_short = 'CO.33' OR province_short = 'CO.34')
              AND date > "{max_date}" AND date < "{todays_date}"
     
@@ -646,6 +685,7 @@ def get_max_dates_for_node_attributes(client):
     Method that gets the max dates of a given attribute
     '''
 
+
     sql = f"""
         SELECT attribute_name, location_id, MAX(date) as max_date
         FROM {nodes_attribute_table}
@@ -730,8 +770,8 @@ def compute_movement(client, location_id, date_string):
                devices_with_movement,
                (all_devices - devices_with_movement) + devices_no_traveled as devices_stayed_in,
                devices_traveled_outside,
-               ((all_devices - devices_with_movement) + devices_no_traveled) / (all_devices + 0.00000001) as percentaga_stayed_in,
-               devices_traveled_outside / (all_devices + + 0.00000001) as percentaga_treveled_outside,
+               SAFE_DIVIDE(all_devices - devices_with_movement + devices_no_traveled, all_devices) as percentaga_stayed_in,
+               SAFE_DIVIDE(devices_traveled_outside, all_devices) as percentaga_treveled_outside,
                all_movement,
                all_movement_avg,
                inner_movement,
@@ -784,6 +824,7 @@ def create_temp_table(client, table_name, code_depto, start_date, end_date, accu
     '''
     Creates a temporal table with the given table name 
     storing all the results from unacast with the given location id
+    Stores only identifiers that are valid according to the seniority scheme
     '''
     
     table_id = client.dataset(temp_data_set_id).table(table_name)
@@ -814,9 +855,12 @@ def create_temp_table(client, table_name, code_depto, start_date, end_date, accu
                                         write_disposition = 'WRITE_APPEND')
     
     # SQL statement
+    # Only valid identifiers
     sql = f"""
-        SELECT identifier, TIMESTAMP(timestamp) as timestamp, device_lat, device_lon, country_short, province_short, device_horizontal_accuracy
-        FROM `servinf-unacast-prod.unacasttest.unacast_positions_partitioned`
+        SELECT un.identifier, TIMESTAMP(timestamp) as timestamp, device_lat, device_lon, country_short, province_short, device_horizontal_accuracy
+        FROM `servinf-unacast-prod.unacasttest.unacast_positions_partitioned` AS un
+        JOIN `grafos-alcaldia-bogota.seniority.valid_identifiers` AS iden
+        ON un.identifier = iden.identifier
         WHERE province_short = "{code_depto}"
               AND device_horizontal_accuracy <= {accuracy}
               AND date >= DATE("{start_date}") 
@@ -1046,7 +1090,11 @@ def get_locations_with_geo_codes(client):
 
 def compute_transits(client, location_id, start_date, end_date, ident = '   '):
     '''
-    Computes the identifiers transits for the given location between the dates. End date is not inclusive
+    Computes the identifiers transits for the given location between the dates. 
+    End date is not inclusive.
+
+    Only incudes valid identifiers according to the seniority scheme
+
     '''
     
     print(ident + f'Adding transtits for: {location_id}. Between: {start_date} and {end_date}')
@@ -1060,12 +1108,14 @@ def compute_transits(client, location_id, start_date, end_date, ident = '   '):
         query = f"""
         SELECT
           "{location_id}" as location_id,
-          identifier,
+          unacast.identifier,
           date,
           EXTRACT(HOUR FROM unacast.timestamp) AS hour,
           COUNT(*) total_transits
         FROM
           grafos-alcaldia-bogota.unacast_samples.unacast_bogota AS unacast
+        JOIN `grafos-alcaldia-bogota.seniority.valid_identifiers` AS iden
+        ON unacast.identifier = iden.identifier
         WHERE
           date >= "{start_date}" AND date < "{end_date}"
           AND ST_DWithin(ST_GeogPoint(unacast.device_lon,
@@ -1074,16 +1124,19 @@ def compute_transits(client, location_id, start_date, end_date, ident = '   '):
             (SELECT precision FROM grafos-alcaldia-bogota.geo.locations_geometries WHERE location_id = "{location_id}"))
         GROUP BY  date, EXTRACT(HOUR FROM unacast.timestamp), identifier
         """        
+
     else:
         query = f"""
         SELECT
           "{location_id}" as location_id,
-          identifier,
+          unacast.identifier,
           date,
           EXTRACT(HOUR FROM unacast.timestamp) AS hour,
           COUNT(*) total_transits
         FROM
           `servinf-unacast-prod.unacasttest.unacast_positions_partitioned` AS unacast
+        JOIN `grafos-alcaldia-bogota.seniority.valid_identifiers` AS iden
+        ON unacast.identifier = iden.identifier          
         WHERE
           date >= "{start_date}" AND date < "{end_date}"
           AND ST_DWithin(ST_GeogPoint(unacast.device_lon,
@@ -1377,6 +1430,33 @@ def update_seniority_summary(client):
 
 
 
+def update_valid_identifiers(client):
+    """
+    Updates the table with valid identifiers
+    """
+
+
+    sql = f"""
+
+        SELECT identifier
+        FROM grafos-alcaldia-bogota.seniority.identifier_seniority_summary
+        WHERE total_days >= {min_total_days_active}
+        GROUP BY identifier
+    
+    """
+    
+    job_config = bigquery.QueryJobConfig(destination = "grafos-alcaldia-bogota.seniority.valid_identifiers", 
+                                         write_disposition = 'WRITE_TRUNCATE')
+    
+    
+    query_job = client.query(sql, job_config=job_config)  
+    query_job.result()
+    
+    return(query_job)
+
+
+
+
 def get_path_coverage_of_depto_codes(client):
     '''
     Return a pandas DataFrame with the coverage of dates for each code_depto for the 
@@ -1410,7 +1490,9 @@ def get_path_coverage_of_depto_codes(client):
 
 def add_paths_for_code_on_date(client, code_depto, date, accuracy = global_accuracy):
     '''
-    Method that updates the paths for the given attributes
+    Method that updates the paths for the given attributes.
+
+    Only includes valid identifiers according to seniority scheme
     '''
     
     destination_table_id = f"grafos-alcaldia-bogota.paths.identifiers_paths"
@@ -1421,15 +1503,17 @@ def add_paths_for_code_on_date(client, code_depto, date, accuracy = global_accur
     
             WITH sorted_devices as (SELECT
                                       "{code_depto}" as code_depto,
-                                      identifier,
+                                      unacast.identifier,
                                       date,
                                       EXTRACT(HOUR FROM MAX(unacast.timestamp)) AS hour,
                                       MAX(timestamp) as timestamp,
                                       unacast.device_lon as lon,
                                       unacast.device_lat as lat,
-                                      ROW_NUMBER() OVER(ORDER BY identifier, MAX(timestamp)) AS row_num
+                                      ROW_NUMBER() OVER(ORDER BY unacast.identifier, MAX(timestamp)) AS row_num
                                     FROM
                                       `servinf-unacast-prod.unacasttest.unacast_positions_partitioned` AS unacast
+                                      JOIN `grafos-alcaldia-bogota.seniority.valid_identifiers` AS iden
+                                      ON unacast.identifier = iden.identifier
                                     WHERE
                                       date = "{date}"
                                       AND device_horizontal_accuracy <= {accuracy}
@@ -1531,6 +1615,7 @@ def update_contacts_for_depto_code(client, code_depto, start_time, end_time,
     temp_table_name = 'contactos_temp_table'
     
     # Creates the temporal table
+    # Temp table already filters out the non valid identifiers (identifiers without seniority)
     res = create_temp_table(client, temp_table_name, code_depto, start_date, end_date)
 
     # Name of sources
