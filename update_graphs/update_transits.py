@@ -51,17 +51,40 @@ def main():
         location_id = row.location_id
         
         # Start date
+        #-----------------
         start_date =  utils.global_min_date.strftime( utils.date_format)
         
         # Checks if min support
         if location_id in df_min_support_date.index:
             start_date = pd.to_datetime(df_min_support_date.loc[location_id,'min_date']).strftime(utils.date_format)
         
+        # Checks if static
+        if row['construction_type'] == utils.CT_STATIC:
+            start_date = pd.to_datetime(row['start_date']).strftime(utils.date_format)
+
+        # Checks if the location has already been computed for certain dates
         if not pd.isna(row.max_date):
             start_date = (pd.to_datetime(row.max_date) + timedelta(days = 1)).strftime(utils.date_format)
 
+        # End date
+        # --------------------
         # Today
         end_date = today.strftime( utils.date_format)
+
+        # Checks if static
+        if row['construction_type'] == utils.CT_STATIC:
+            end_date = min(pd.to_datetime(row['end_date']), today).strftime(utils.date_format)
+
+
+            # Checks if has to compute
+            # Start date has not started
+            if today < pd.to_datetime(row['start_date']):
+                print(f'   Static Location: {location_id} is scheduled to start on: {start_date}')
+                continue
+
+            if pd.date_time(start_date) >= pd.date_time(end_date):
+                print(f"   Static Location: {location_id} has already finished computing transits: {row['start_date']} to {row['end_date']}")
+                continue
 
         print(f'   Excecuting: {location_id} ({i} of {total_locations})')
 

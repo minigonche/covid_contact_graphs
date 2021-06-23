@@ -41,21 +41,21 @@ check_integrity.main()
 
 print('--------------------------------------')
 print()
-print('Depto Codes')
+print('Depto Codes') # Code Level
 print('')
 update_depto_codes.main()
 
 
 print('--------------------------------------')
 print()
-print('Seniority')
+print('Seniority') # Code Level
 print('')
 update_seniority.main() 
 
 
 print('--------------------------------------')
 print()
-print('Contacts')
+print('Contacts') # Code Level
 print('')
 update_contacts.main()
 
@@ -63,43 +63,46 @@ update_contacts.main()
 
 print('--------------------------------------')
 print('')
-print('Transits')
+print('Transits') # location Level
 print('')
-update_transits.main()
+update_transits.main() # CHECK STATIC TRANSITS
 
 
 
 print('--------------------------------------')
 print('')
-print('Edgelists')
+print('Edgelists') # location Level
 print('')
-update_graphs.main() 
+update_graphs.main() # CHECK STATIC LOCATIONS
 
 
+print('--------------------------------------')
 print()
-print('Housing Locations')
+print('Housing Locations') # Code Level
 print('')
 update_housing.main() 
 
 
-
+print('--------------------------------------')
 print()
-print('Graph Sizes')
+print('Graph Sizes') # location Level
 print('')
-update_sizes.main()
+update_sizes.main()  # CHECK STATIC LOCATIONS
+
+
 
 print('--------------------------------------')
 print()
-print('Paths') 
+print('Paths') # Code Level
 print('')
 update_paths.main()
 
 
 # Bogota tiene ciertos valores computados. Faltan las localidades
 print()
-print('Graph Movement')
+print('Graph Movement') # location Level
 print('')
-update_movement.main()
+update_movement.main() # CHECK STATIC LOCATIONS
 
 
 

@@ -11,7 +11,7 @@ import numpy as np
 def main():
 
     # Extracts the current date. 
-    end_date = utils.get_today() - timedelta(days = 1)
+    end_date = utils.get_today()
      
     # Extracts the locations
     client = bigquery.Client(location="US")
@@ -29,7 +29,7 @@ def main():
     
 
     # Filters out
-    df_locations = df_locations[(df_locations.max_date.isna()) | (df_locations.max_date < end_date)]
+    df_locations = df_locations[(df_locations.max_date.isna()) | ((df_locations.max_date  + timedelta(days = 1) ) < end_date)]
 
     
     print(f'Computing for {df_locations.shape[0]} Graphs')
@@ -43,6 +43,12 @@ def main():
         
         i += 1
         print(f'   Computing { row.location_id}')
+
+        # Checks special static case
+        if row['construction_type'] == utils.CT_STATIC:
+            if end_date <= pd.to_datetime(row['end_date']):
+                print(f"       location is STATIC. Will wait until: {pd.to_datetime(row['end_date'])+timedelta(days=1)} to detect transits and start computing.")
+                continue        
         
         
         start_date = utils.global_min_date
@@ -58,35 +64,65 @@ def main():
         print(f'      Calculating for {row.location_id} ({i} of {df_locations.shape[0]}), from: {start_date} to {end_date}')
         
         current_date = start_date
-        while current_date <= end_date:
+        while current_date < end_date:
             
             date_string = current_date.strftime( utils.date_format)
+
+            if row['construction_type'] == utils.CT_DYNAMIC:
             
-            sql = f"""
-            INSERT INTO grafos-alcaldia-bogota.graph_attributes.graph_sizes (location_id, date,num_nodes, num_edges) 
-            SELECT "{location_id}" as location_id,
-                    DATE("{date_string}") as date,       
-                    (SELECT COUNT(*) as num_nodes
-                    FROM
-                    (SELECT identifier
-                    FROM grafos-alcaldia-bogota.transits.hourly_transits
-                    WHERE location_id = "{location_id}"
-                          AND date <= "{date_string}"
-                          AND date >= DATE_SUB("{date_string}", INTERVAL {utils.global_attribute_window - 1} DAY) 
-                    GROUP BY identifier )) as num_nodes,
-                    (SELECT COUNT(*) as num_edges
-                      FROM
-                      (
-                          SELECT id1, id2
-                          FROM grafos-alcaldia-bogota.{dataset_id}.{location_id}
-                          WHERE date <= "{date_string}"
-                                AND date >= DATE_SUB("{date_string}", INTERVAL {utils.global_attribute_window - 1} DAY) 
-                          GROUP BY id1, id2
-                      )) as num_edges
-            
-            
-            """
-            
+                sql = f"""
+                INSERT INTO grafos-alcaldia-bogota.graph_attributes.graph_sizes (location_id, date, num_nodes, num_edges) 
+                SELECT "{location_id}" as location_id,
+                        DATE("{date_string}") as date,       
+                        (SELECT COUNT(*) as num_nodes
+                        FROM
+                        (SELECT identifier
+                        FROM grafos-alcaldia-bogota.transits.hourly_transits
+                        WHERE location_id = "{location_id}"
+                            AND date <= "{date_string}"
+                            AND date >= DATE_SUB("{date_string}", INTERVAL {utils.global_attribute_window - 1} DAY) 
+                        GROUP BY identifier )) as num_nodes,
+                        (SELECT COUNT(*) as num_edges
+                        FROM
+                        (
+                            SELECT id1, id2
+                            FROM grafos-alcaldia-bogota.{dataset_id}.{location_id}
+                            WHERE date <= "{date_string}"
+                                    AND date >= DATE_SUB("{date_string}", INTERVAL {utils.global_attribute_window - 1} DAY) 
+                            GROUP BY id1, id2
+                        )) as num_edges
+                
+                
+                """
+            elif row['construction_type'] == utils.CT_STATIC:
+
+                sql = f"""
+                    INSERT INTO grafos-alcaldia-bogota.graph_attributes.graph_sizes (location_id, date, num_nodes, num_edges) 
+                    SELECT "{location_id}" as location_id,
+                            DATE("{date_string}") as date,       
+                            (SELECT COUNT(*) as num_nodes
+                            FROM
+                            (SELECT identifier
+                            FROM grafos-alcaldia-bogota.transits.hourly_transits
+                            WHERE location_id = "{location_id}"
+                                AND date < "{pd.to_datetime(row['end_date']).strftime( utils.date_format)}"
+                                AND date >= "{pd.to_datetime(row['start_date']).strftime( utils.date_format)}"
+                            GROUP BY identifier )) as num_nodes,
+                            (SELECT COUNT(*) as num_edges
+                            FROM
+                            (
+                                SELECT id1, id2
+                                FROM grafos-alcaldia-bogota.{dataset_id}.{location_id}
+                                WHERE date <= "{date_string}"
+                                        AND date >= DATE_SUB("{date_string}", INTERVAL {utils.global_attribute_window - 1} DAY) 
+                                GROUP BY id1, id2
+                            )) as num_edges
+                    
+                    
+                    """
+            else:
+                raise ValueError(f"Construction type: {row['construction_type']} not supported")
+
             job_config= bigquery.QueryJobConfig()
             query_job = client.query(sql, job_config= job_config) 
             query_job.result()

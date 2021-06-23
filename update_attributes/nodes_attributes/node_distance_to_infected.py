@@ -7,6 +7,7 @@ import numpy as np
 import igraph as ig
 import utils
 import positive_db_functions as pos_fun
+from datetime import timedelta
 
 #NOTA
 # Los intervalos de dias a incluir según fecha de inicio sintomas, fueron ajustados después de
@@ -31,7 +32,7 @@ generic_sql = """
              FROM grafos-alcaldia-bogota.transits.hourly_transits
              WHERE location_id = "{location_id}"
                    AND date <= "{end_date_string}"
-                   AND date >  DATE_SUB(DATE("{end_date_string}"), INTERVAL 7 DAY) -- Los transitos de la ultima semana
+                   AND date >= "{start_date_string}"
              GROUP BY identifier
         ),
         -- Housing
@@ -82,7 +83,7 @@ bogota_sql = """
                      FROM grafos-alcaldia-bogota.transits.hourly_transits
                      WHERE location_id = "{location_id}"
                            AND date <= "{end_date_string}"
-                           AND date >  DATE_SUB(DATE("{end_date_string}"), INTERVAL 7 DAY) -- Los transitos de la ultima semana
+                           AND date >=  "{start_date_string}"
                      GROUP BY identifier
                 ),
                 -- Housing
@@ -177,6 +178,12 @@ class NodeDistanceToInfected(GenericNodeAttributeWithCases):
         returns
             pd.DataFrame with the structure of the output of the method compute_attribute   
         '''
+        # If static will collect all devices        
+        if self.df_locations.loc[location_id, 'construction_type'] == utils.CT_STATIC:
+            # Starts dates
+            start_date_string = pd.to_datetime(self.df_locations.loc[location_id, 'start_date'] ).strftime(utils.date_format)
+            # End date. Substracts 1 day because end date in static scheme is not inlusive
+            end_date_string = (pd.to_datetime(self.df_locations.loc[location_id, 'end_date']) - timedelta(days = 1)).strftime(utils.date_format)
         
         city = utils.get_city(self.client, location_id, self.df_codes)
         

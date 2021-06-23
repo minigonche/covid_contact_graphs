@@ -124,7 +124,8 @@ class GenericWeeklyAttribute():
     def location_id_supported(self, location_id):
         '''
         Method that determines if the attribute is supported for the location_id (graph).
-        The default implementation is to return True.
+        The default implementation is to return True, unless it has construction type: STATIC that checks if 
+        the current date is after the end date of the delimiting dates.
 
         Overwrite this method in case the attribute is not on any date for a given location.
     
@@ -132,12 +133,17 @@ class GenericWeeklyAttribute():
         
         params
             - location_id (str)
-            - current_date (pd.datetime): the current datetime
 
         returns
             Boolean
         '''
 
+        # Checks if static and that all nodes are computed
+        if self.df_locations.loc[location_id, 'construction_type'] == utils.CT_STATIC:
+            if utils.get_today() < pd.to_datetime(self.df_locations.loc[location_id, 'end_date']):
+                print(f"location: {location_id} is static. Will wait until {self.df_locations.loc[location_id, 'end_date']} to compute the attribute.")
+                return(False)
+                
         return(True)
 
         
@@ -169,6 +175,8 @@ class GenericWeeklyAttribute():
         if not support_date:
             print(f'               Min date is set to: {min_date.strftime("%y-%m-%d")}')
             return(False)
+
+
             
         # Uses the sizes
         num_edges = self.df_graph_sizes.loc[(location_id,current_date),'num_edges']
@@ -313,7 +321,8 @@ class GenericWeeklyAttribute():
 
     def get_complete_nodes(self, location_id, start_date_string, end_date_string):
         '''
-        Method that extracts the ungrouped transits (nodes) given the location id
+        Method that extracts the ungrouped transits (nodes) given the location id. If the
+        construction type is static, will invoke the entire duration.
 
         parameters
             location_id(str): The graph id        
@@ -325,15 +334,22 @@ class GenericWeeklyAttribute():
 
         '''
 
+        # If static will collect all devices        
+        if self.df_locations.loc[location_id, 'construction_type'] == utils.CT_STATIC:
+            # Starts dates
+            start_date_string = pd.to_datetime(self.df_locations.loc[location_id, 'start_date'] ).strftime(utils.date_format)
+            # End date. Substracts 1 day because end date in static scheme is not inlusive
+            end_date_string = (pd.to_datetime(self.df_locations.loc[location_id, 'end_date']) - timedelta(days = 1)).strftime(utils.date_format)
+
         query = f"""
 
-            SELECT *
-            FROM grafos-alcaldia-bogota.transits.hourly_transits
-            WHERE location_id = "{location_id}" 
-                  AND date >= "{start_date_string}"
-                  AND date <= "{end_date_string}"
+                SELECT *
+                FROM grafos-alcaldia-bogota.transits.hourly_transits
+                WHERE location_id = "{location_id}" 
+                    AND date >= "{start_date_string}"
+                    AND date <= "{end_date_string}"
 
-        """
+            """
 
         job_config = bigquery.QueryJobConfig(allow_large_results=True)
         query_job = self.client.query(query, job_config=job_config) 
@@ -348,7 +364,8 @@ class GenericWeeklyAttribute():
 
     def get_compact_nodes(self, location_id, start_date_string, end_date_string):
         '''
-        Method that extracts the grouped transits (nodes) given the location id
+        Method that extracts the grouped transits (nodes) given the location id. If the
+        construction type is static, will invoke the entire duration.
 
         parameters
             - location_id(str): The graph id
@@ -361,6 +378,13 @@ class GenericWeeklyAttribute():
                 - weight (int): the sum of the total_transits       
     
         '''
+        # If static will collect all devices        
+        if self.df_locations.loc[location_id, 'construction_type'] == utils.CT_STATIC:
+            # Starts dates
+            start_date_string = pd.to_datetime(self.df_locations.loc[location_id, 'start_date'] ).strftime(utils.date_format)
+            # End date. Substracts 1 day because end date in static scheme is not inlusive
+            end_date_string = (pd.to_datetime(self.df_locations.loc[location_id, 'end_date']) - timedelta(days = 1)).strftime(utils.date_format)
+
 
         query = f"""
 

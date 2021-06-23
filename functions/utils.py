@@ -54,7 +54,11 @@ BOGOTA = "bogota"
 debug = False
 debug_current_date = "2021-01-10"
 
+# Construction types
+CT_DYNAMIC = "DYNAMIC"
+CT_STATIC = "STATIC"
 
+CONSTRUCTION_TYPES = [CT_DYNAMIC,CT_STATIC]
 
 
 def get_today(only_date = False):
@@ -154,17 +158,17 @@ def get_current_locations(client, only_active = True):
     
     if only_active:
         sql = f"""
-            SELECT location_id, name, precision, dataset, type
+            SELECT location_id, name, precision, dataset, type, construction_type, start_date, end_date
             FROM grafos-alcaldia-bogota.geo.locations_geometries
             WHERE active = TRUE
-            GROUP BY location_id, name, precision, dataset, type
+            GROUP BY location_id, name, precision, dataset, type, construction_type, start_date, end_date
       """
 
     else:
         sql = f"""
-            SELECT location_id, name, precision, dataset, type
+            SELECT location_id, name, precision, dataset, type, construction_type, start_date, end_date
             FROM grafos-alcaldia-bogota.geo.locations_geometries
-            GROUP BY location_id, name, precision, dataset, type
+            GROUP BY location_id, name, precision, dataset, type, construction_type, start_date, end_date
       """
 
     return( run_simple_query(client, sql))
@@ -727,19 +731,39 @@ def get_max_dates_for_graph_movement(client):
 
 
 
-def compute_movement(client, location_id, date_string):
+def compute_movement(client, 
+                    location_id, 
+                    date_string,
+                    construction_type,
+                    start_transits_date_string = None,
+                    end_transits_date_string = None):
     '''
     Computes the movmeent for the given graph
     '''
     
     job_config= bigquery.QueryJobConfig(destination= "grafos-alcaldia-bogota.graph_attributes.graph_movement",
                             write_disposition = 'WRITE_APPEND')
+
+    # Cehcks construction type
+    if construction_type == CT_DYNAMIC:
+        final_start_transits_date_string = date_string
+        final_end_transits_date_string = (pd.to_datetime(date_string) + timedelta(days=1)).strftime(date_format)
+
+    elif construction_type == CT_STATIC:
+        final_start_transits_date_string = start_transits_date_string
+        final_end_transits_date_string = end_transits_date_string
+
+    else:
+        raise ValueError(f"Construction type: {construction_type} not supported")
+
     # Massive Query
     sql = f"""
          WITH   tr as (
                   SELECT DISTINCT identifier
                   FROM grafos-alcaldia-bogota.transits.hourly_transits
-                  WHERE date = "{date_string}" AND location_id = "{location_id}"
+                  WHERE date >= "{final_start_transits_date_string}" 
+                    AND date < "{final_end_transits_date_string}" 
+                    AND location_id = "{location_id}"
                   GROUP BY identifier
                 ), # --   Transits
                 paths as (
@@ -1756,43 +1780,83 @@ def get_min_date_for_graph_table(client, dataset, graph_name):
     return(df.min_date.iloc[0])
 
 
-def add_edglists_to_graph(client, dataset_id, graph_name, date):
+def add_edglists_to_graph(client, 
+                          dataset_id, 
+                          graph_name, 
+                          date_string, 
+                          construction_type,
+                          start_transits_date_string = None,
+                          end_transits_date_string = None):
     '''
-    Method that adds the edges of the corresponding dates
+    Method that adds the edges of the corresponding dates depending on the type
     '''
     
     destination_table_id = f"grafos-alcaldia-bogota.{dataset_id}.{graph_name}"
     job_config = bigquery.QueryJobConfig(destination = destination_table_id, 
                                          write_disposition = 'WRITE_APPEND')
+    
+
+    if construction_type == CT_DYNAMIC:
+        sql = f"""
         
-    sql = f"""
-    
-        WITH tr as (
-          SELECT DISTINCT identifier
-          FROM grafos-alcaldia-bogota.transits.hourly_transits
-          WHERE date = "{date}" AND location_id = "{graph_name}"
-          GROUP BY identifier
-        ), 
-        contacts as (
-          SELECT con.* 
-          FROM grafos-alcaldia-bogota.contacts_minute.all_locations as con
-          JOIN (SELECT code_depto FROM grafos-alcaldia-bogota.geo.locations_geo_codes WHERE location_id = "{graph_name}") codes
-          ON con.code_depto = codes.code_depto
-          WHERE con.date = "{date}"
-        )
+            WITH tr as (
+            SELECT DISTINCT identifier
+            FROM grafos-alcaldia-bogota.transits.hourly_transits
+            WHERE date = "{date_string}" AND location_id = "{graph_name}"
+            GROUP BY identifier
+            ), 
+            contacts as (
+            SELECT con.* 
+            FROM grafos-alcaldia-bogota.contacts_minute.all_locations as con
+            JOIN (SELECT code_depto FROM grafos-alcaldia-bogota.geo.locations_geo_codes WHERE location_id = "{graph_name}") codes
+            ON con.code_depto = codes.code_depto
+            WHERE con.date = "{date_string}"
+            )
 
 
-        SELECT filtered_contacts.*
-        FROM 
-        (SELECT contacts.*
-          FROM contacts
-          JOIN tr
-          ON contacts.id1 = tr.identifier) as filtered_contacts
-        JOIN tr
-        ON filtered_contacts.id2 = tr.identifier
+            SELECT filtered_contacts.*
+            FROM 
+            (SELECT contacts.*
+            FROM contacts
+            JOIN tr
+            ON contacts.id1 = tr.identifier) as filtered_contacts
+            JOIN tr
+            ON filtered_contacts.id2 = tr.identifier
 
-    """
-    
+        """
+    elif construction_type == CT_STATIC:
+
+        sql = f"""
+        
+            WITH tr as (
+            SELECT DISTINCT identifier
+            FROM grafos-alcaldia-bogota.transits.hourly_transits
+            WHERE date >= "{start_transits_date_string}" 
+              and date <= "{end_transits_date_string}" 
+              AND location_id = "{graph_name}"
+            GROUP BY identifier
+            ), 
+            contacts as (
+            SELECT con.* 
+            FROM grafos-alcaldia-bogota.contacts_minute.all_locations as con
+            JOIN (SELECT code_depto FROM grafos-alcaldia-bogota.geo.locations_geo_codes WHERE location_id = "{graph_name}") codes
+            ON con.code_depto = codes.code_depto
+            WHERE con.date = "{date_string}"
+            )
+
+
+            SELECT filtered_contacts.*
+            FROM 
+            (SELECT contacts.*
+            FROM contacts
+            JOIN tr
+            ON contacts.id1 = tr.identifier) as filtered_contacts
+            JOIN tr
+            ON filtered_contacts.id2 = tr.identifier
+
+        """
+    else:
+        raise ValueError(f"Construction type: {construction_type} not supported")
 
     query_job = client.query(sql, job_config=job_config)  
     query_job.result()

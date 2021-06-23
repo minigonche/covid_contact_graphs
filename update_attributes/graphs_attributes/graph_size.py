@@ -5,7 +5,7 @@ from graph_attribute_generic import GenericGraphAttribute
 import pandas as pd
 import utils
 import numpy as np
-
+from datetime import timedelta
 
 
 # Dictionary to include property values
@@ -68,7 +68,15 @@ class GraphSize(GenericGraphAttribute):
         returns
             pd.DataFrame with the structure of the output of the method compute_attribute   
         '''
-                
+
+        # If static will collect all devices        
+        if self.df_locations.loc[location_id, 'construction_type'] == utils.CT_STATIC:
+            # Starts dates
+            start_date_string = pd.to_datetime(self.df_locations.loc[location_id, 'start_date'] ).strftime(utils.date_format)
+            # End date. Substracts 1 day because end date in static scheme is not inlusive
+            end_date_string = (pd.to_datetime(self.df_locations.loc[location_id, 'end_date']) - timedelta(days = 1)).strftime(utils.date_format)
+
+
         query = f"""
             SELECT COUNT(*) as num_nodes
             FROM

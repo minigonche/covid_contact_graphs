@@ -11,7 +11,7 @@ def main():
 
     # Extracts the current date
     # Extracts the current date. Substract one day and the goes back to the colsest sunday
-    today =utils.get_today()
+    today = utils.get_today()
   
     # Extracts the locations
     client = bigquery.Client(location="US")
@@ -45,6 +45,12 @@ def main():
         i += 1
         print(f'   Computing { row.location_id}')
 
+        # Checks special static case
+        if row['construction_type'] == utils.CT_STATIC:
+            if today <= pd.to_datetime(row['end_date']):
+                print(f"       location is STATIC. Will wait until: {pd.to_datetime(row['end_date'])+timedelta(days=1)} to detect transits and start computing.")
+                continue 
+
         start_date = utils.global_min_date
         
         # Checks for min support
@@ -62,7 +68,12 @@ def main():
             
             date_string = current_date.strftime( utils.date_format)
             
-            utils.compute_movement(client, location_id, date_string)
+            utils.compute_movement(client = client, 
+                                  location_id =  location_id, 
+                                  date_string = date_string,
+                                  construction_type = row['construction_type'],
+                                  start_transits_date_string = pd.to_datetime(row['start_date']).strftime( utils.date_format) if not pd.isna(row['start_date']) else None,
+                                  end_transits_date_string = pd.to_datetime(row['end_date']).strftime( utils.date_format) if not pd.isna(row['end_date']) else None)
             
             print(f'         {current_date}: OK.')
             current_date = current_date + timedelta(days = 1)

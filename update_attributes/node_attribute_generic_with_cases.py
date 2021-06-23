@@ -40,8 +40,10 @@ class GenericNodeAttributeWithCases(GenericNodeAttribute):
         returns
             Boolean
         '''
-                        
-        return( pos_fun.has_positives_database(self.client, location_id, self.df_codes))
+
+        global_support = GenericWeeklyAttribute.location_id_supported(self, location_id)
+
+        return( global_support and pos_fun.has_positives_database(self.client, location_id, self.df_codes))
     
 
         

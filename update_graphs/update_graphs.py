@@ -46,6 +46,12 @@ def main():
         location_id = row.location_id
 
         print(f'   Excecuting: {location_id} ({i} of {total_locations})')
+
+        # Checks special static case
+        if row['construction_type'] == utils.CT_STATIC:
+            if today <= pd.to_datetime(row['end_date']):
+                print(f"       location is STATIC. Will wait until: {pd.to_datetime(row['end_date'])+timedelta(days=1)} to detect transits and start computing.")
+                continue
         
         # Checks if dataset exists
         if not row.dataset_exists:
@@ -75,23 +81,22 @@ def main():
 
             print(f"      Computing {curent_date}")
 
-            utils.add_edglists_to_graph(client, row.dataset, location_id, curent_date.strftime( utils.date_format))
-
+            utils.add_edglists_to_graph(client = client, 
+                                        dataset_id = row.dataset, 
+                                        graph_name = location_id, 
+                                        date_string = curent_date.strftime( utils.date_format),
+                                        construction_type = row['construction_type'],
+                                        start_transits_date_string = pd.to_datetime(row['start_date']).strftime( utils.date_format) if not pd.isna(row['start_date']) else None,
+                                        end_transits_date_string = pd.to_datetime(row['end_date']).strftime( utils.date_format) if not pd.isna(row['end_date']) else None)
             #updates
             curent_date = curent_date + timedelta(days = 1)
 
         print(f'   Current Time: {np.round((time.time() - start_time)/60,2)} minutes')
         print()
         
-        df_locations.loc[ind, 'end_date'] = final_date - timedelta(days = 1)
+        df_locations.loc[ind, 'end_date'] = final_date - timedelta(days = 1) - timedelta(days = 10) # Sets back 10 days, to avoid this script to run with transit compution failing
     
     
-    # Sends the dates back 10 days for safety
-    for ind, row in df_locations.iterrows():        
-        #updates the value
-        df_locations.loc[ind, 'end_date'] = df_locations.loc[ind, 'end_date'] - timedelta(days = 10) # Sets back 10 days, to avoid this script to run with transit compution failing
-
-
 
     print('Saves coverage')
     utils.refresh_graphs_coverage(client, df_locations)

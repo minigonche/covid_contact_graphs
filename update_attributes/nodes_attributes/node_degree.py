@@ -5,7 +5,7 @@ from node_attribute_generic import GenericNodeAttribute
 import pandas as pd
 import utils
 import numpy as np
-
+from datetime import timedelta
 
 # Dictionary to include property values
 property_values = {}
@@ -72,6 +72,18 @@ class NodeDegree(GenericNodeAttribute):
         '''
         
         datset_id = self.df_locations.loc[location_id, 'dataset']
+
+        # Transit dates
+        start_transits_date_string = start_date_string
+        end_transits_date_string = end_date_string
+
+        # If static will collect all devices        
+        if self.df_locations.loc[location_id, 'construction_type'] == utils.CT_STATIC:
+            # Starts dates
+            start_transits_date_string = pd.to_datetime(self.df_locations.loc[location_id, 'start_date'] ).strftime(utils.date_format)
+            # End date. Substracts 1 day because end date in static scheme is not inlusive
+            end_transits_date_string = (pd.to_datetime(self.df_locations.loc[location_id, 'end_date']) - timedelta(days = 1)).strftime(utils.date_format)
+
         
         query = f"""
                 WITH contacts as (
@@ -85,7 +97,7 @@ class NodeDegree(GenericNodeAttribute):
                     SELECT identifier
                     FROM grafos-alcaldia-bogota.transits.hourly_transits
                     WHERE location_id = "{location_id}"
-                          AND date >= "{start_date_string}" AND date <= "{end_date_string}"
+                          AND date >= "{start_transits_date_string}" AND date <= "{end_transits_date_string}"
                    GROUP BY identifier
                   )
 
